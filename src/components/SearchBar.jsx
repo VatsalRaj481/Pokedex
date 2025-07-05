@@ -18,7 +18,7 @@ function SearchBar({ onSearch }) {
     >
       <input
         type="text"
-        placeholder="Enter Pokémon name or ID"
+        placeholder="Enter Pokémon name or Pokédex Number"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="flex-grow w-full px-5 py-2.5 border border-gray-300 rounded-xl

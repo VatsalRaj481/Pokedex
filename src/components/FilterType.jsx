@@ -1,36 +1,100 @@
-import React from "react";
+import React, { useState } from "react";
 
-function FilterType({ types, onFilter }) {
+function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
+  const [nameQuery, setNameQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedGeneration, setSelectedGeneration] = useState("");
+
+  // Handles form submission to trigger search/filter
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSearchAndFilter(nameQuery, selectedType, selectedGeneration);
+  };
+
+  // Helper to map generation ID to region name for display
+  const getGenerationRegionName = (genId) => {
+    switch (genId) {
+      case 1:
+        return "Kanto";
+      case 2:
+        return "Johto";
+      case 3:
+        return "Hoenn";
+      case 4:
+        return "Sinnoh";
+      case 5:
+        return "Unova";
+      case 6:
+        return "Kalos";
+      case 7:
+        return "Alola";
+      case 8:
+        return "Galar/Hisui";
+      case 9:
+        return "Paldea";
+      default:
+        return "";
+    }
+  };
+
   return (
-    <div className="relative w-full max-w-sm">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-row items-center gap-4 w-full"
+    >
+      <input
+        type="text"
+        placeholder="Search by name/ID or filter by name..."
+        value={nameQuery}
+        onChange={(e) => setNameQuery(e.target.value)}
+        className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter"
+        aria-label="Search or filter Pokémon by name or ID"
+        disabled={isLoading}
+      />
+
       <select
-        onChange={(e) => onFilter(e.target.value)}
-        defaultValue=""
-        className="block w-full px-5 py-2.5 border border-gray-300 rounded-xl
-                   bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   transition-all duration-200 text-gray-800 text-lg cursor-pointer"
-        aria-label="Filter Pokémon by type"
+        value={selectedType}
+        onChange={(e) => setSelectedType(e.target.value)}
+        className="flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
+        aria-label="Filter by Pokémon type"
+        disabled={isLoading}
       >
-        <option value="" disabled>
-          Select Type to Filter
-        </option>
-        {types.map((t) => (
-          <option key={t.name} value={t.name} className="capitalize">
-            {t.name}
-          </option>
-        ))}
+        <option value="">All Types</option>
+        {Array.isArray(types) &&
+          types.map((t) => (
+            <option key={t.name} value={t.name} className="capitalize">
+              {t.name}
+            </option>
+          ))}
       </select>
-      {/* Custom arrow for select dropdown */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-        <svg
-          className="fill-current h-5 w-5"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.096 6.924 4.682 8.338l4.611 4.612z" />
-        </svg>
-      </div>
-    </div>
+
+      <select
+        value={selectedGeneration}
+        onChange={(e) => setSelectedGeneration(e.target.value)}
+        className="flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
+        aria-label="Filter by Pokémon generation"
+        disabled={isLoading}
+      >
+        <option value="">All Generations</option>
+        {Array.isArray(generations) &&
+          generations.map((gen) => (
+            <option key={gen.id} value={gen.id} className="capitalize">
+              {`Generation ${gen.name
+                .split("-")[1]
+                .toUpperCase()} (${getGenerationRegionName(gen.id)})`}
+            </option>
+          ))}
+      </select>
+
+      <button
+        type="submit"
+        className="w-36 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold font-inter
+                   shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        disabled={isLoading}
+      >
+        {isLoading ? "Loading..." : "Search / Filter"}
+      </button>
+    </form>
   );
 }
 

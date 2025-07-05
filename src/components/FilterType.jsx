@@ -29,7 +29,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
       case 7:
         return "Alola";
       case 8:
-        return "Galar/Hisui";
+        return "Galar";
       case 9:
         return "Paldea";
       default:

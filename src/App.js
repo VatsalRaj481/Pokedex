@@ -129,7 +129,9 @@ function App() {
       setSelectedPokemonDescription(cleanedAndFormattedDescription);
     } catch (err) {
       console.error("Error fetching Pokémon species data:", err);
-      setSelectedPokemonDescription("Failed to load description.");
+      setSelectedPokemonDescription(
+        "Description is yet to be added about this rare Pokémon."
+      );
     }
   }, []);
 
@@ -181,7 +183,6 @@ function App() {
 
       // Filters the Pokémon list based on name, type, and generation
       const filtered = pokemonList.filter((p) => {
-        // Name contains query (case-insensitive)
         const matchesName = nameQuery.trim()
           ? p.name.toLowerCase().includes(nameQuery.toLowerCase())
           : true;
@@ -244,51 +245,44 @@ function App() {
         pauseOnHover
       />
 
-      <h1 className="text-5xl font-extrabold text-gray-900 mb-8 tracking-tight flex items-center gap-4">
+      {/* Elegant Pokédex Title with inline Pokeball SVG */}
+      <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-black drop-shadow-sm mb-8 tracking-tight flex items-center justify-center gap-4">
         <svg
-          width="48"
-          height="48"
-          viewBox="0 0 200 200"
-          fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-12 h-12"
+          viewBox="0 0 200 200"
+          width="80"
+          height="80"
+          className="w-20 h-20 pointer-events-none"
         >
-          <rect width="200" height="200" fill="white" />
+          {/* Outer circle */}
           <circle
             cx="100"
             cy="100"
-            r="90"
+            r="95"
             fill="white"
             stroke="black"
-            strokeWidth="8"
+            strokeWidth="10"
           />
+          {/* Top red half */}
           <path
-            d="M100 10V100H10C10 50.2944 50.2944 10 100 10Z"
-            fill="url(#paint0_linear_1_2)"
+            d="M5,100 a95,95 0 0,1 190,0"
+            fill="red"
+            stroke="black"
+            strokeWidth="10"
           />
-          <path d="M10 100H190" stroke="black" strokeWidth="8" />
+          {/* Middle black band */}
+          <rect x="5" y="90" width="190" height="20" fill="black" />
+          {/* Inner white circle */}
           <circle
             cx="100"
             cy="100"
-            r="30"
+            r="25"
             fill="white"
             stroke="black"
             strokeWidth="8"
           />
-          <circle cx="100" cy="100" r="15" fill="black" />
-          <defs>
-            <linearGradient
-              id="paint0_linear_1_2"
-              x1="100"
-              y1="10"
-              x2="100"
-              y2="100"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop stopColor="#DC0A2D" />
-              <stop offset="1" stopColor="#C00A2D" />
-            </linearGradient>
-          </defs>
+          {/* Inner grey highlight (optional) */}
+          <circle cx="100" cy="100" r="12" fill="lightgrey" />
         </svg>
         Pokédex
       </h1>
@@ -343,9 +337,22 @@ function App() {
       )}
 
       {!isLoading && !selectedPokemon && filteredPokemon.length === 0 && (
-        <p className="mt-8 text-gray-500 text-lg">
-          Enter a Pokémon name or ID, or filter by type to begin!
-        </p>
+        // Enhanced introductory message section with Pikachu GIF
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8 text-center sm:text-left max-w-2xl">
+          <p className="text-xl sm:text-2xl lg:text-3xl text-gray-700 font-medium">
+            Start your Pokémon journey: Search or filter to begin!
+          </p>
+          <img
+            src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif" // Pikachu GIF
+            alt="Pikachu waving"
+            className="w-24 h-24 sm:w-32 sm:h-32 object-contain"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src =
+                "https://placehold.co/128x128/cccccc/000000?text=Pika";
+            }}
+          />
+        </div>
       )}
     </div>
   );

@@ -48,11 +48,12 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
   // Base card styling
   const cardBase = `bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200`;
 
-  // Tailwind classes for horizontal layout (detailed view)
-  const horizontalLayout = `flex flex-col md:flex-row p-8 items-center md:items-start gap-8`;
+  // Tailwind classes for horizontal layout (detailed view) - Adjusted for responsiveness
+  const horizontalLayout = `flex flex-col md:flex-row p-4 sm:p-8 items-center md:items-start gap-8`;
   const horizontalMainImageClasses =
-    "w-96 h-96 md:w-[32rem] md:h-[32rem] object-contain";
-  const horizontalAltImageClasses = "w-64 h-64 object-contain";
+    "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-[32rem] h-auto object-contain"; // Adjusted
+  const horizontalAltImageClasses =
+    "w-full max-w-[12rem] sm:max-w-[16rem] h-auto object-contain"; // Adjusted
   const horizontalNameClasses =
     "text-4xl md:text-5xl font-bold capitalize mb-2 text-gray-800";
   const horizontalIdClasses = "text-xl md:text-2xl ml-2 text-gray-500";
@@ -62,9 +63,10 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
     "font-semibold text-gray-700 mb-2 text-lg md:text-xl";
   const horizontalListItemClasses = "text-base md:text-lg";
 
-  // Tailwind classes for vertical layout (grid view)
+  // Tailwind classes for vertical layout (grid view) - Adjusted for responsiveness
   const verticalLayout = `p-4 flex flex-col items-center`;
-  const verticalImageClasses = "w-64 h-64 object-contain mb-4";
+  const verticalImageClasses =
+    "w-full max-w-[12rem] h-auto object-contain mb-4"; // Adjusted
   const verticalNameClasses =
     "text-3xl font-bold capitalize mb-2 text-gray-800 min-h-[4rem] flex items-center justify-center text-center";
   const verticalIdClasses = "text-sm ml-2 text-gray-500";
@@ -89,9 +91,8 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
               ? horizontalMainImageClasses
               : verticalImageClasses
           } drop-shadow-md`}
-          style={{ imageRendering: "pixelated" }} // Keeps pixelated look for sprites
+          style={{ imageRendering: "pixelated" }}
           onError={(e) => {
-            // Fallback for image loading errors
             e.target.onerror = null;
             e.target.src = `https://placehold.co/${
               layout === "horizontal" ? "512x512" : "256x256"
@@ -99,7 +100,7 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
           }}
         />
 
-        {layout === "horizontal" && ( // Show shiny sprite only in horizontal layout
+        {layout === "horizontal" && (
           <div className="flex flex-wrap justify-center gap-2">
             {homeShinyImageSrc && (
               <img
@@ -151,36 +152,32 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
           ))}
         </div>
 
-        {layout === "horizontal" &&
-          description && ( // Description only for horizontal layout
-            <div className="mb-3">
-              <h3 className={`${horizontalSectionTitleClasses}`}>
-                Description:
-              </h3>
-              <p className={`text-gray-700 ${horizontalListItemClasses}`}>
-                {description}
-              </p>
-            </div>
-          )}
+        {layout === "horizontal" && description && (
+          <div className="mb-3">
+            <h3 className={`${horizontalSectionTitleClasses}`}>Description:</h3>
+            <p className={`text-gray-700 ${horizontalListItemClasses}`}>
+              {description}
+            </p>
+          </div>
+        )}
 
-        {layout === "horizontal" &&
-          pokemonRegions.length > 0 && ( // Regions only for horizontal layout
-            <div className="mb-3">
-              <h3 className={`${horizontalSectionTitleClasses}`}>Regions:</h3>
-              <ul className="list-disc list-inside text-gray-600">
-                {pokemonRegions.map((regionName) => (
-                  <li
-                    key={regionName}
-                    className={`capitalize ${horizontalListItemClasses}`}
-                  >
-                    {regionName}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        {layout === "horizontal" && pokemonRegions.length > 0 && (
+          <div className="mb-3">
+            <h3 className={`${horizontalSectionTitleClasses}`}>Regions:</h3>
+            <ul className="list-disc list-inside text-gray-600">
+              {pokemonRegions.map((regionName) => (
+                <li
+                  key={regionName}
+                  className={`capitalize ${horizontalListItemClasses}`}
+                >
+                  {regionName}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        {layout === "horizontal" && ( // Physical attributes only for horizontal layout
+        {layout === "horizontal" && (
           <div className="mb-3">
             <h3 className={`${horizontalSectionTitleClasses}`}>
               Physical Attributes:
@@ -203,66 +200,42 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
         )}
 
         <div className={`mb-3 ${abilitiesMinHeightClass}`}>
-          <h3
-            className={`${
-              layout === "horizontal"
-                ? horizontalSectionTitleClasses
-                : verticalSectionTitleClasses
-            }`}
-          >
-            Abilities:
-          </h3>
+          <h3 className={`${horizontalSectionTitleClasses}`}>Abilities:</h3>
           <ul className="list-disc list-inside text-gray-600">
-            {pokemon.abilities.map(
-              (
-                a // List all abilities
-              ) => (
-                <li
-                  key={a.ability.name}
-                  className={`capitalize ${
-                    layout === "horizontal"
-                      ? horizontalListItemClasses
-                      : verticalListItemClasses
-                  }`}
-                >
-                  {a.ability.name}{" "}
-                  {a.is_hidden && (
-                    <span className="text-gray-500 text-xs">(Hidden)</span>
-                  )}
-                </li>
-              )
-            )}
+            {pokemon.abilities.map((a) => (
+              <li
+                key={a.ability.name}
+                className={`capitalize ${
+                  layout === "horizontal"
+                    ? horizontalListItemClasses
+                    : verticalListItemClasses
+                }`}
+              >
+                {a.ability.name}{" "}
+                {a.is_hidden && (
+                  <span className="text-gray-500 text-xs">(Hidden)</span>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
 
         <div className="mt-2">
-          <h3
-            className={`${
-              layout === "horizontal"
-                ? horizontalSectionTitleClasses
-                : verticalSectionTitleClasses
-            }`}
-          >
-            Base Stats:
-          </h3>
+          <h3 className={`${horizontalSectionTitleClasses}`}>Base Stats:</h3>
           <ul className="text-gray-600">
-            {pokemon.stats.map(
-              (
-                s // List all base stats
-              ) => (
-                <li
-                  key={s.stat.name}
-                  className={`flex justify-between ${
-                    layout === "horizontal"
-                      ? horizontalListItemClasses
-                      : verticalListItemClasses
-                  }`}
-                >
-                  <span className="capitalize">{s.stat.name}:</span>
-                  <span>{s.base_stat}</span>
-                </li>
-              )
-            )}
+            {pokemon.stats.map((s) => (
+              <li
+                key={s.stat.name}
+                className={`flex justify-between ${
+                  layout === "horizontal"
+                    ? horizontalListItemClasses
+                    : verticalListItemClasses
+                }`}
+              >
+                <span className="capitalize">{s.stat.name}:</span>
+                <span>{s.base_stat}</span>
+              </li>
+            ))}
             <li
               className={`flex justify-between font-bold text-gray-700 mt-2 ${
                 layout === "horizontal"

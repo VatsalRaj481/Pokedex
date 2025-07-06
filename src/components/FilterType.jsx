@@ -40,14 +40,14 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-row items-center gap-4 w-full"
+      className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full"
     >
       <input
         type="text"
         placeholder="Search by name/ID or filter by name..."
         value={nameQuery}
         onChange={(e) => setNameQuery(e.target.value)}
-        className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter"
+        className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter"
         aria-label="Search or filter Pokémon by name or ID"
         disabled={isLoading}
       />
@@ -55,7 +55,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
       <select
         value={selectedType}
         onChange={(e) => setSelectedType(e.target.value)}
-        className="flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
+        className="w-full sm:flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
         aria-label="Filter by Pokémon type"
         disabled={isLoading}
       >
@@ -71,7 +71,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
       <select
         value={selectedGeneration}
         onChange={(e) => setSelectedGeneration(e.target.value)}
-        className="flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
+        className="w-full sm:flex-1 block px-4 py-2 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter capitalize"
         aria-label="Filter by Pokémon generation"
         disabled={isLoading}
       >
@@ -88,7 +88,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
 
       <button
         type="submit"
-        className="w-36 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold font-inter
+        className="w-full sm:w-36 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold font-inter
                    shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         disabled={isLoading}
       >

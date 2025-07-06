@@ -5,7 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import PokemonCard from "./components/PokemonCard";
 import FilterType from "./components/FilterType";
-import Footer from "./components/Footer";
+import Footer from "./components/Footer"; // Import the Footer component
 
 function App() {
   const [pokemonList, setPokemonList] = useState([]);
@@ -21,7 +21,7 @@ function App() {
   const pokemonToRegionMapRef = useRef({});
   const generationSpeciesCache = useRef({});
 
-  // Fetches initial data
+  // Fetches initial data like types, generations, and builds the region map
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -81,6 +81,7 @@ function App() {
     fetchInitialData();
   }, []);
 
+  // Fetches the entire Pokémon list from the API once
   const fetchAllPokemonData = useCallback(async () => {
     if (hasFetchedAllPokemon) return;
     setIsLoading(true);
@@ -102,6 +103,7 @@ function App() {
     }
   }, [hasFetchedAllPokemon]);
 
+  // Converts a string to sentence case
   const toSentenceCase = (text) => {
     if (!text) return "";
     return (
@@ -113,6 +115,7 @@ function App() {
     );
   };
 
+  // Fetches and formats a Pokémon's description
   const fetchPokemonDescription = useCallback(async (pokemonNameOrId) => {
     try {
       const speciesRes = await axios.get(
@@ -133,6 +136,7 @@ function App() {
     }
   }, []);
 
+  // Handles combined search and filter logic
   const handleSearchAndFilter = useCallback(
     async (nameQuery, typeQuery, selectedGenerationId) => {
       setIsLoading(true);
@@ -178,6 +182,7 @@ function App() {
         }
       }
 
+      // Filters the Pokémon list based on name, type, and generation
       const filtered = pokemonList.filter((p) => {
         const matchesName = nameQuery.trim()
           ? p.name.toLowerCase().includes(nameQuery.toLowerCase())
@@ -192,7 +197,7 @@ function App() {
       });
 
       setFilteredPokemon(filtered);
-
+      // If a single exact match is found (case-insensitive), display it as selected Pokémon
       if (
         filtered.length === 1 &&
         filtered[0].name.toLowerCase() === nameQuery.toLowerCase()
@@ -218,6 +223,7 @@ function App() {
     ]
   );
 
+  // Handles clicking a Pokémon card to show its detailed view
   const handleCardClick = (pokemon) => {
     setSelectedPokemon(pokemon);
     setSelectedPokemonDescription("");
@@ -227,22 +233,23 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-grow bg-gradient-to-br from-red-100 to-white flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 font-inter">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-
+    // Outermost div: flex container for content and footer, min-height for full screen
+    <div className="min-h-screen bg-gradient-to-br from-red-100 to-white flex flex-col items-center font-inter">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+      {/* Main content wrapper: Takes available space, applies padding */}
+      <div className="flex-grow flex flex-col items-center w-full py-8 px-4 sm:px-6 lg:px-8">
+        {/* Elegant Pokédex Title with inline Pokeball SVG */}
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-red-600 to-black drop-shadow-sm mb-8 tracking-tight flex items-center justify-center gap-4">
-          {/* Pokeball SVG */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 200 200"
@@ -250,6 +257,7 @@ function App() {
             height="80"
             className="w-20 h-20 pointer-events-none"
           >
+            {/* Outer circle */}
             <circle
               cx="100"
               cy="100"
@@ -258,13 +266,16 @@ function App() {
               stroke="black"
               strokeWidth="10"
             />
+            {/* Top red half */}
             <path
               d="M5,100 a95,95 0 0,1 190,0"
               fill="red"
               stroke="black"
               strokeWidth="10"
             />
+            {/* Middle black band */}
             <rect x="5" y="90" width="190" height="20" fill="black" />
+            {/* Inner white circle */}
             <circle
               cx="100"
               cy="100"
@@ -273,6 +284,7 @@ function App() {
               stroke="black"
               strokeWidth="8"
             />
+            {/* Inner grey highlight (optional) */}
             <circle cx="100" cy="100" r="12" fill="lightgrey" />
           </svg>
           Pokédex
@@ -328,12 +340,13 @@ function App() {
         )}
 
         {!isLoading && !selectedPokemon && filteredPokemon.length === 0 && (
+          // Enhanced introductory message section with Pikachu GIF
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8 text-center sm:text-left max-w-2xl">
             <p className="text-xl sm:text-2xl lg:text-3xl text-gray-700 font-medium">
               Start your Pokémon journey: Search or filter to begin!
             </p>
             <img
-              src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif"
+              src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif" // Pikachu GIF
               alt="Pikachu waving"
               className="w-24 h-24 sm:w-32 sm:h-32 object-contain"
               onError={(e) => {
@@ -344,8 +357,9 @@ function App() {
             />
           </div>
         )}
-      </main>
-      <Footer />
+      </div>{" "}
+      {/* End of flex-grow content wrapper */}
+      <Footer /> {/* Footer component, now outside the padded content area */}
     </div>
   );
 }

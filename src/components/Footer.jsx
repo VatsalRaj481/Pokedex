@@ -4,20 +4,24 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-gray-800 text-white text-center text-sm sm:text-base m-0">
-      <div className="w-full">
-        <p className="py-4 m-0">
+    <footer className="w-full bg-gray-800 text-white py-4 mt-16 sm:mt-24 text-center text-sm sm:text-base shadow-inner">
+      <div className="container mx-auto px-4">
+        {" "}
+        {/* Container for horizontal padding on larger screens */}
+        <p className="mb-2">
           &copy; {currentYear} Pokédex App created by
           <a
             href="https://github.com/VatsalRaj481"
+            target="_blank" // Opens link in a new tab
+            rel="noopener noreferrer" // Security best practice for target="_blank"
             className="text-blue-400 hover:text-blue-300 transition-colors underline ml-1"
           >
             Casy
           </a>
           . All rights reserved.
         </p>
-
-        {/* <p>
+        {/*
+        <p>
           Data provided by{' '}
           <a
             href="https://pokeapi.co/"
@@ -28,7 +32,8 @@ function Footer() {
             PokeAPI
           </a>
           .
-        </p> */}
+        </p>
+        */}
       </div>
     </footer>
   );

@@ -44,7 +44,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
     >
       <input
         type="text"
-        placeholder="Search by name/ID or filter by name..."
+        placeholder="Search by name..."
         value={nameQuery}
         onChange={(e) => setNameQuery(e.target.value)}
         className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter"

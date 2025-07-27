@@ -51,9 +51,9 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
   // Tailwind classes for horizontal layout (detailed view) - Adjusted for responsiveness
   const horizontalLayout = `flex flex-col md:flex-row p-4 sm:p-8 items-center md:items-start gap-8`;
   const horizontalMainImageClasses =
-    "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-[32rem] h-auto object-contain"; // Adjusted
+    "w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-[32rem] h-auto object-contain";
   const horizontalAltImageClasses =
-    "w-full max-w-[12rem] sm:max-w-[16rem] h-auto object-contain"; // Adjusted
+    "w-full max-w-[12rem] sm:max-w-[16rem] h-auto object-contain";
   const horizontalNameClasses =
     "text-4xl md:text-5xl font-bold capitalize mb-2 text-gray-800";
   const horizontalIdClasses = "text-xl md:text-2xl ml-2 text-gray-500";
@@ -66,12 +66,12 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
   // Tailwind classes for vertical layout (grid view) - Adjusted for responsiveness
   const verticalLayout = `p-4 flex flex-col items-center`;
   const verticalImageClasses =
-    "w-full max-w-[12rem] h-auto object-contain mb-4"; // Adjusted
+    "w-full max-w-[12rem] h-auto object-contain mb-4";
   const verticalNameClasses =
     "text-3xl font-bold capitalize mb-2 text-gray-800 min-h-[4rem] flex items-center justify-center text-center";
   const verticalIdClasses = "text-sm ml-2 text-gray-500";
   const verticalTypeClasses = "px-3 py-0.5 rounded-full text-xs font-semibold";
-  const verticalSectionTitleClasses = "font-semibold text-gray-700 mb-1";
+  const verticalSectionTitleClasses = "font-semibold text-gray-700 mb-1"; // This was the unused variable
   const verticalListItemClasses = "text-sm";
 
   const abilitiesMinHeightClass = layout === "vertical" ? "min-h-[5rem]" : "";
@@ -200,7 +200,15 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
         )}
 
         <div className={`mb-3 ${abilitiesMinHeightClass}`}>
-          <h3 className={`${horizontalSectionTitleClasses}`}>Abilities:</h3>
+          <h3
+            className={`${
+              layout === "horizontal"
+                ? horizontalSectionTitleClasses
+                : verticalSectionTitleClasses // Corrected: Using verticalSectionTitleClasses here
+            }`}
+          >
+            Abilities:
+          </h3>
           <ul className="list-disc list-inside text-gray-600">
             {pokemon.abilities.map((a) => (
               <li
@@ -221,7 +229,15 @@ function PokemonCard({ pokemon, layout, pokemonToRegionMap, description }) {
         </div>
 
         <div className="mt-2">
-          <h3 className={`${horizontalSectionTitleClasses}`}>Base Stats:</h3>
+          <h3
+            className={`${
+              layout === "horizontal"
+                ? horizontalSectionTitleClasses
+                : verticalSectionTitleClasses // Corrected: Using verticalSectionTitleClasses here
+            }`}
+          >
+            Base Stats:
+          </h3>
           <ul className="text-gray-600">
             {pokemon.stats.map((s) => (
               <li

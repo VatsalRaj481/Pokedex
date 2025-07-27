@@ -45,7 +45,7 @@ function App() {
         setGenerations(formattedGenerations);
 
         const pokedexListRes = await axios.get(
-          "https://pokeapi.co/api/v2/pokedex?limit=100"
+          "https://pokeapi.co/api/v2/pokedex"
         );
         const tempPokemonToRegionMap = {};
 

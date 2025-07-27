@@ -223,7 +223,7 @@ function PokemonScanner({
 
   return (
     <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6 mb-8 flex flex-col items-center">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Pokédex Scan</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Pokémon Scanner</h2>
 
       <div className="flex flex-col items-center w-full">
         <video

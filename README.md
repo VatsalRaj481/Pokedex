@@ -1,70 +1,104 @@
-# Getting Started with Create React App
+# Pokedex
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based Pokedex web app with search, type filtering, generation filtering, and an AI-powered camera scanner for identifying Pokemon from an image.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Search Pokemon by name
+- Filter Pokemon by type
+- Filter Pokemon by generation and region
+- View Pokemon cards with detailed descriptions
+- Scan a Pokemon using your device camera and Gemini image recognition
+- Responsive UI built with Tailwind CSS
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React
+- Create React App
+- Tailwind CSS
+- Axios
+- React Toastify
+- PokeAPI
+- Gemini API
+- Firebase Hosting
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Environment Variables
 
-### `npm test`
+Create a `.env` file in the project root with:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```env
+REACT_APP_API_KEY=your_gemini_api_key
+```
 
-### `npm run build`
+This key is used by the Pokemon scanner feature.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Run Locally
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Install dependencies:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+```
 
-### `npm run eject`
+Start the development server:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Create a production build:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+npm run build
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Deploy To Firebase Hosting
 
-## Learn More
+This repo is already prepared for Firebase Hosting with `firebase.json`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Install the Firebase CLI globally if you do not already have it:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm install -g firebase-tools
+```
 
-### Code Splitting
+2. Log in to Firebase:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+firebase login
+```
 
-### Analyzing the Bundle Size
+3. Create a Firebase project in the Firebase Console, then replace the placeholder project id in `.firebaserc`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+4. Deploy:
 
-### Making a Progressive Web App
+```bash
+npm run deploy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The deploy command will automatically build the app first because `predeploy` runs `npm run build`.
 
-### Advanced Configuration
+## Firebase Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- Firebase Hosting is configured to serve the `build` folder
+- SPA rewrites are enabled, so all routes fall back to `index.html`
+- Static assets are cached aggressively, while `index.html` is not
 
-### Deployment
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```text
+src/
+  components/
+  App.js
+  index.js
+  index.css
+public/
+build/
+firebase.json
+.firebaserc
+```
 
-### `npm run build` fails to minify
+## Data Sources
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Pokemon data: [PokeAPI](https://pokeapi.co/)
+- Image-based identification: Gemini API

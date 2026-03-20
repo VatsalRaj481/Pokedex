@@ -1,15 +1,16 @@
 # Pokedex
 
-A React-based Pokedex web app with search, type filtering, generation filtering, and an AI-powered camera scanner for identifying Pokemon from an image.
+A React-based Pokedex web app with search, type filtering, generation filtering, and an AI-powered camera scanner. The frontend is hosted on Firebase Hosting, while the image scan backend runs on Render with the Gemini API key kept server-side.
 
 ## Features
 
 - Search Pokemon by name
 - Filter Pokemon by type
 - Filter Pokemon by generation and region
-- View Pokemon cards with detailed descriptions
-- Scan a Pokemon using your device camera and Gemini image recognition
-- Responsive UI built with Tailwind CSS
+- View Pokemon details and descriptions
+- Scan a Pokemon image using the device camera
+- Use a protected backend so the Gemini API key is not exposed in the browser
+- Apply scan cooldowns to reduce repeated requests and quota issues
 
 ## Tech Stack
 
@@ -19,28 +20,43 @@ A React-based Pokedex web app with search, type filtering, generation filtering,
 - Axios
 - React Toastify
 - PokeAPI
-- Gemini API
+- Express
+- Render
 - Firebase Hosting
+- Gemini API
+
+## Architecture
+
+- Frontend: React app deployed on Firebase Hosting
+- Backend: Express server in `backend/` deployed on Render
+- Pokemon data: PokeAPI
+- Image recognition: Gemini API through the backend only
 
 ## Environment Variables
 
-Create a `.env` file in the project root with:
+Frontend `.env` in the project root:
 
 ```env
-REACT_APP_API_KEY=your_gemini_api_key
+REACT_APP_SCAN_API_URL=https://your-render-service.onrender.com/scan
 ```
 
-This key is used by the Pokemon scanner feature.
+Backend environment variable on Render:
 
-## Run Locally
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
 
-Install dependencies:
+Do not store the Gemini API key in the frontend.
+
+## Run Frontend Locally
+
+Install frontend dependencies:
 
 ```bash
 npm install
 ```
 
-Start the development server:
+Start the React app:
 
 ```bash
 npm start
@@ -52,37 +68,82 @@ Create a production build:
 npm run build
 ```
 
-## Deploy To Firebase Hosting
+## Run Backend Locally
 
-This repo is already prepared for Firebase Hosting with `firebase.json`.
+Install backend dependencies:
 
-1. Install the Firebase CLI globally if you do not already have it:
+```bash
+cd backend
+npm install
+```
+
+Set the backend environment variable:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+Start the backend:
+
+```bash
+npm start
+```
+
+The backend runs on:
+
+```text
+http://localhost:5000
+```
+
+Health check:
+
+```text
+http://localhost:5000/health
+```
+
+## Deploy Backend To Render
+
+Create a new Render Web Service with these settings:
+
+- Root Directory: `backend`
+- Environment: `Node`
+- Build Command: `npm install`
+- Start Command: `npm start`
+
+Add this environment variable in Render:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+After deployment, copy your Render backend URL and use it in the frontend `.env` as `REACT_APP_SCAN_API_URL`.
+
+## Deploy Frontend To Firebase Hosting
+
+Install the Firebase CLI if needed:
 
 ```bash
 npm install -g firebase-tools
 ```
 
-2. Log in to Firebase:
+Log in:
 
 ```bash
 firebase login
 ```
 
-3. Create a Firebase project in the Firebase Console, then replace the placeholder project id in `.firebaserc`.
-
-4. Deploy:
+Build and deploy:
 
 ```bash
-npm run deploy
+npm run build
+firebase deploy
 ```
 
-The deploy command will automatically build the app first because `predeploy` runs `npm run build`.
+## Rate Limiting
 
-## Firebase Notes
-
-- Firebase Hosting is configured to serve the `build` folder
-- SPA rewrites are enabled, so all routes fall back to `index.html`
-- Static assets are cached aggressively, while `index.html` is not
+- The backend allows only one scan request every 8 seconds globally
+- If the limit is hit, the backend returns HTTP `429`
+- The frontend also applies a cooldown to reduce duplicate scans
 
 ## Project Structure
 
@@ -92,6 +153,9 @@ src/
   App.js
   index.js
   index.css
+backend/
+  server.js
+  package.json
 public/
 build/
 firebase.json
@@ -101,4 +165,4 @@ firebase.json
 ## Data Sources
 
 - Pokemon data: [PokeAPI](https://pokeapi.co/)
-- Image-based identification: Gemini API
+- Image recognition: Gemini API

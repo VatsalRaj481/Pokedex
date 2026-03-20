@@ -68,6 +68,12 @@ Create a production build:
 npm run build
 ```
 
+If you want the frontend to call the local backend while developing, set the root `.env` file to:
+
+```env
+REACT_APP_SCAN_API_URL=http://localhost:5000/scan
+```
+
 ## Run Backend Locally
 
 Install backend dependencies:
@@ -99,6 +105,37 @@ Health check:
 
 ```text
 http://localhost:5000/health
+```
+
+## Run Full App Locally
+
+Run the backend in one terminal:
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+Run the frontend in a second terminal from the project root:
+
+```bash
+npm install
+npm start
+```
+
+For local development, make sure the root `.env` contains:
+
+```env
+REACT_APP_SCAN_API_URL=http://localhost:5000/scan
+```
+
+The app should then be available at:
+
+```text
+Frontend: http://localhost:3000
+Backend: http://localhost:5000
+Health: http://localhost:5000/health
 ```
 
 ## Deploy Backend To Render

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import PokemonCard from "./components/PokemonCard";
 import FilterType from "./components/FilterType";
@@ -115,6 +115,7 @@ function App() {
   const [pokemonList, setPokemonList] = useState([]);
   const [types, setTypes] = useState([]);
   const [generations, setGenerations] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [filteredPokemon, setFilteredPokemon] = useState([]);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
   const [selectedPokemonDescription, setSelectedPokemonDescription] =
@@ -129,14 +130,54 @@ function App() {
   const [comparedPokemon, setComparedPokemon] = useState([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
+  // Theme toggle state (persisted)
+  const [theme, setTheme] = useState(() => localStorage.getItem("pokedex-theme") || "dark");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 24;
+
+  // Sticky header state
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+
   const pokemonToRegionMapRef = useRef({});
   const generationSpeciesCache = useRef({});
+  const heroRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   const memoizedPokemonList = useMemo(() => pokemonList, [pokemonList]);
 
-  // Set document root to dark theme once on mount
+  // Infinite Scroll Observer
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", "dark");
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setCurrentPage((prev) => {
+            if (prev * ITEMS_PER_PAGE < filteredPokemon.length) {
+              return prev + 1;
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: "400px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredPokemon.length]);
+
+  // Sync theme to DOM and localStorage
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("pokedex-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
 
   // Dynamic Background style classes based on primary type
@@ -145,6 +186,30 @@ function App() {
       return "bg-theme-bg text-theme-primary";
     }
     const type = selectedPokemon.types[0].type.name;
+
+    if (theme === "light") {
+      const lightTypeBgs = {
+        normal: "from-amber-100/30 to-[#f7f1e6]",
+        fire: "from-orange-100/40 to-[#f7f1e6]",
+        water: "from-sky-100/40 to-[#f7f1e6]",
+        grass: "from-emerald-100/40 to-[#f7f1e6]",
+        electric: "from-amber-100/50 to-[#f7f1e6]",
+        ice: "from-cyan-100/40 to-[#f7f1e6]",
+        fighting: "from-rose-100/40 to-[#f7f1e6]",
+        poison: "from-purple-100/40 to-[#f7f1e6]",
+        ground: "from-amber-100/40 to-[#f7f1e6]",
+        flying: "from-indigo-100/35 to-[#f7f1e6]",
+        psychic: "from-pink-100/40 to-[#f7f1e6]",
+        bug: "from-lime-100/40 to-[#f7f1e6]",
+        rock: "from-yellow-100/40 to-[#f7f1e6]",
+        ghost: "from-purple-100/35 to-[#f7f1e6]",
+        dragon: "from-violet-100/40 to-[#f7f1e6]",
+        steel: "from-stone-200/40 to-[#f7f1e6]",
+        dark: "from-stone-300/30 to-[#f7f1e6]",
+        fairy: "from-rose-100/35 to-[#f7f1e6]",
+      };
+      return `bg-gradient-to-b ${lightTypeBgs[type] || lightTypeBgs.normal} text-theme-primary`;
+    }
 
     const typeBgs = {
       normal: "from-slate-900/60 to-slate-950",
@@ -222,6 +287,16 @@ function App() {
         }
 
         pokemonToRegionMapRef.current = finalPokemonToRegionMap;
+
+        // Extract unique regions in canonical order
+        const regionOrder = ["kanto", "johto", "hoenn", "sinnoh", "unova", "kalos", "alola", "galar", "hisui", "paldea"];
+        const foundRegions = new Set();
+        pokedexDetails.forEach((pdxDetail) => {
+          if (pdxDetail.data.region) {
+            foundRegions.add(pdxDetail.data.region.name);
+          }
+        });
+        setRegions(regionOrder.filter((r) => foundRegions.has(r)));
       } catch (error) {
         console.error("Error fetching initial data:", error);
         toast.error("Failed to load initial PokeAPI mappings.");
@@ -289,12 +364,13 @@ function App() {
   }, []);
 
   const handleSearchAndFilter = useCallback(
-    async (nameQuery, typeQuery, selectedGenerationId) => {
+    async (nameQuery, typeQuery, selectedRegion, selectedGenerationId, selectedCategory) => {
       setIsLoading(true);
       setFilteredPokemon([]);
       setSelectedPokemon(null);
       setSelectedPokemonDescription("");
       setShowScanner(false);
+      setCurrentPage(1);
 
       if (!hasFetchedAllPokemon) {
         await fetchAllPokemonData();
@@ -341,17 +417,65 @@ function App() {
         const matchesType = typeQuery
           ? pokemon.types.some((type) => type.type.name === typeQuery)
           : true;
+
         const matchesGeneration = selectedGenerationId
           ? generationPokemonNames.has(pokemon.name)
           : true;
 
-        return matchesName && matchesType && matchesGeneration;
+        let matchesRegion = true;
+        if (selectedRegion) {
+          const reg = selectedRegion.toLowerCase();
+          const pName = pokemon.name.toLowerCase();
+
+          if (reg === "hisui") {
+            if (pName.includes("-hisui") || pName === "basculegion" || pName === "sneasler" || pName === "overqwil" || pName === "enamorus" || pName === "dialga-origin" || pName === "palkia-origin") {
+              matchesRegion = true;
+            } else {
+              const mappedRegions = pokemonToRegionMapRef.current[pokemon.name] || [];
+              matchesRegion = mappedRegions.some((r) => r.toLowerCase() === "hisui");
+            }
+          } else {
+            if (pName.includes(`-${reg}`)) {
+              matchesRegion = true;
+            } else {
+              const mappedRegions = pokemonToRegionMapRef.current[pokemon.name] || [];
+              const baseName = pokemon.name.split("-")[0];
+              const baseRegions = pokemonToRegionMapRef.current[baseName] || [];
+              matchesRegion =
+                mappedRegions.some((r) => r.toLowerCase() === reg) ||
+                baseRegions.some((r) => r.toLowerCase() === reg);
+            }
+          }
+        }
+
+        let matchesCategory = true;
+        if (selectedCategory) {
+          const pName = pokemon.name.toLowerCase();
+          if (selectedCategory === "mega") {
+            matchesCategory = pName.includes("-mega");
+          } else if (selectedCategory === "gmax") {
+            matchesCategory = pName.includes("-gmax");
+          } else if (selectedCategory === "alola") {
+            matchesCategory = pName.includes("-alola");
+          } else if (selectedCategory === "galar") {
+            matchesCategory = pName.includes("-galar");
+          } else if (selectedCategory === "hisui") {
+            matchesCategory = pName.includes("-hisui") || pName === "basculegion" || pName === "sneasler" || pName === "overqwil" || pName === "enamorus" || pName === "dialga-origin" || pName === "palkia-origin";
+          } else if (selectedCategory === "paldea") {
+            matchesCategory = pName.includes("-paldea");
+          } else if (selectedCategory === "special") {
+            matchesCategory = !pokemon.is_default && !pName.includes("-mega") && !pName.includes("-gmax");
+          }
+        }
+
+        return matchesName && matchesType && matchesGeneration && matchesRegion && matchesCategory;
       });
 
       setFilteredPokemon(filtered);
 
       if (
         filtered.length === 1 &&
+        nameQuery &&
         filtered[0].name.toLowerCase() === nameQuery.toLowerCase()
       ) {
         setSelectedPokemon(filtered[0]);
@@ -404,13 +528,7 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const focusSearchInput = useCallback(() => {
-    const input = document.querySelector('input[placeholder="Search by name or number..."]');
-    if (input) {
-      input.focus();
-      input.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, []);
+
 
   const handleToggleCompare = useCallback((pokemon) => {
     const exists = comparedPokemon.some((p) => p.id === pokemon.id);
@@ -426,6 +544,37 @@ function App() {
       }
     }
   }, [comparedPokemon]);
+
+  const paginatedPokemon = useMemo(() => {
+    return filteredPokemon.slice(0, currentPage * ITEMS_PER_PAGE);
+  }, [filteredPokemon, currentPage]);
+
+  const handleBrowseDex = useCallback(async () => {
+    setIsLoading(true);
+    setSelectedPokemon(null);
+    setSelectedPokemonDescription("");
+    setShowScanner(false);
+    setCurrentPage(1);
+
+    if (!hasFetchedAllPokemon) {
+      await fetchAllPokemonData();
+    }
+    setFilteredPokemon(pokemonList);
+    setIsLoading(false);
+  }, [hasFetchedAllPokemon, fetchAllPokemonData, pokemonList]);
+
+  // Scroll listener for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 200) {
+        setShowStickyHeader(true);
+      } else {
+        setShowStickyHeader(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className={`min-h-screen flex flex-col items-center transition-all duration-350 relative overflow-hidden ${getBackgroundStyle()}`}>
@@ -447,93 +596,166 @@ function App() {
         toastClassName="bg-theme-surface border-2 border-theme-accent text-theme-primary rounded-2xl font-display"
       />
 
+      {/* Sticky Floating Top Bar */}
+      <AnimatePresence>
+        {showStickyHeader && (
+          <motion.header
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="fixed top-0 inset-x-0 z-40 bg-theme-surface/90 backdrop-blur-md border-b border-theme shadow-lg px-4 py-3"
+          >
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              {/* Logo + Title */}
+              <button
+                onClick={handleGoHome}
+                className="flex items-center gap-2 focus:outline-none cursor-pointer group"
+              >
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    <circle cx="100" cy="100" r="95" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
+                    <path d="M5,100 a95,95 0 0,1 190,0" fill="var(--color-accent-red)" stroke="#0f172a" strokeWidth="12" />
+                    <rect x="5" y="94" width="190" height="12" fill="#0f172a" />
+                    <circle cx="100" cy="100" r="32" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
+                    <circle cx="100" cy="100" r="16" fill="#cbd5e1" stroke="#475569" strokeWidth="4" />
+                  </svg>
+                </div>
+                <span className="font-display font-extrabold text-lg text-theme-primary hidden sm:inline">
+                  Pokedex
+                </span>
+              </button>
+
+              {/* Centered Filter Control Deck */}
+              <div className="flex-grow max-w-2xl">
+                <FilterType
+                  key={`sticky-${filterResetKey}`}
+                  types={types}
+                  generations={generations}
+                  regions={regions}
+                  onSearchAndFilter={handleSearchAndFilter}
+                  isLoading={isLoading}
+                />
+              </div>
+
+              {/* Theme Toggle & Scanner Actions */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={toggleTheme}
+                  className="p-2.5 bg-theme-surface-hover border border-theme text-theme-primary rounded-xl shadow-sm hover:border-theme-accent cursor-pointer flex items-center justify-center"
+                  title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+                  aria-label="Toggle Theme"
+                >
+                  {theme === "dark" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-amber-400">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21m8.966-8.966h-2.25m-13.5 0H3m15.364 6.364l-1.591-1.591M6.758 6.758L5.167 5.167m12.728 0l-1.591 1.591M6.758 17.242l-1.591 1.591M12 8.25a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-indigo-500">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                    </svg>
+                  )}
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowScanner(true)}
+                  className="p-2.5 bg-theme-accent text-white rounded-xl shadow-sm hover:opacity-90 cursor-pointer flex items-center justify-center"
+                  title="Scan Pokemon"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15.5a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.053 47.745 47.745 0 00-3.91-.228 2.192 2.192 0 00-1.736 1.053l-.822 1.316z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 13.5a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" />
+                  </svg>
+                </motion.button>
+              </div>
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
+
       <div className="flex-grow flex flex-col items-center w-full py-8 px-4 sm:px-6 lg:px-8 max-w-7xl z-10">
         
-        {/* Pokedex Header Title */}
-        <h1 className="text-5xl sm:text-6xl font-display font-extrabold text-theme-primary mb-8 tracking-[-0.02em] flex items-center justify-center gap-4 select-none">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            type="button"
-            onClick={handleGoHome}
-            className="rounded-full focus:outline-none focus:ring-4 focus:ring-theme-accent/50 cursor-pointer"
-            title="Go to main screen"
-            aria-label="Go to main screen"
-          >
-            {/* Spinning Poke Ball logo icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 200 200"
-              className="w-16 h-16 sm:w-20 sm:h-20"
-            >
-              <circle cx="100" cy="100" r="95" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
-              <path d="M5,100 a95,95 0 0,1 190,0" fill="var(--color-accent-red)" stroke="#0f172a" strokeWidth="12" />
-              <rect x="5" y="94" width="190" height="12" fill="#0f172a" />
-              <circle cx="100" cy="100" r="32" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
-              <circle cx="100" cy="100" r="16" fill="#cbd5e1" stroke="#475569" strokeWidth="4" />
-            </svg>
-          </motion.button>
-          <span
-            className="font-display font-extrabold tracking-[-0.02em] select-none"
-            style={{
-              backgroundImage: "linear-gradient(to right, var(--color-accent-red), var(--color-text-primary))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              display: "inline-block",
-            }}
-          >
-            Pokedex
-          </span>
-
-        </h1>
-
-        {/* Dashboard Control Deck */}
-        <div className="w-full max-w-4xl flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 mb-12">
-          <FilterType
-            key={filterResetKey}
-            types={types}
-            generations={generations}
-            onSearchAndFilter={handleSearchAndFilter}
-            isLoading={isLoading}
-          />
-
-          {/* Camera Scanner Trigger */}
-          <div className="relative group flex-shrink-0">
+        {/* Main Pokedex Header Title Bar */}
+        <div className="w-full flex items-center justify-between mb-8 select-none">
+          <div className="flex items-center gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              onClick={() => setShowScanner(true)}
-              className="p-3 bg-theme-accent hover:opacity-90 text-white rounded-2xl shadow-md flex items-center justify-center w-full sm:w-14 h-14 border border-theme cursor-pointer"
-              title="Scan Pokemon"
-              disabled={isScanning || isLoading}
+              type="button"
+              onClick={handleGoHome}
+              className="rounded-full focus:outline-none focus:ring-4 focus:ring-theme-accent/50 cursor-pointer"
+              title="Go to main screen"
+              aria-label="Go to main screen"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="w-6 h-6"
+                viewBox="0 0 200 200"
+                className="w-12 h-12 sm:w-16 sm:h-16"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15.5a2.25 2.25 0 002.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.053 47.745 47.745 0 00-3.91-.228 2.192 2.192 0 00-1.736 1.053l-.822 1.316z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 13.5a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"
-                />
+                <circle cx="100" cy="100" r="95" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
+                <path d="M5,100 a95,95 0 0,1 190,0" fill="var(--color-accent-red)" stroke="#0f172a" strokeWidth="12" />
+                <rect x="5" y="94" width="190" height="12" fill="#0f172a" />
+                <circle cx="100" cy="100" r="32" fill="#f8fafc" stroke="#0f172a" strokeWidth="12" />
+                <circle cx="100" cy="100" r="16" fill="#cbd5e1" stroke="#475569" strokeWidth="4" />
               </svg>
             </motion.button>
-            {/* Custom Tooltip */}
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-900 border border-slate-700 text-[10px] font-display font-semibold text-white px-2.5 py-1 rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-              SCAN POKEMON
+            <span
+              className="font-display font-extrabold text-3xl sm:text-5xl tracking-[-0.02em] select-none"
+              style={{
+                backgroundImage: "linear-gradient(to right, var(--color-accent-red), var(--color-text-primary))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                display: "inline-block",
+              }}
+            >
+              Pokedex
             </span>
           </div>
+
+          {/* Header Action Controls: Theme Toggle */}
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTheme}
+              className="px-4 py-2 bg-theme-surface border border-theme text-theme-primary rounded-2xl shadow-sm hover:border-theme-accent font-display font-semibold text-xs tracking-wide cursor-pointer flex items-center gap-2"
+              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-amber-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m0 13.5V21m8.966-8.966h-2.25m-13.5 0H3m15.364 6.364l-1.591-1.591M6.758 6.758L5.167 5.167m12.728 0l-1.591 1.591M6.758 17.242l-1.591 1.591M12 8.25a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" />
+                  </svg>
+                  <span>Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-indigo-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                  </svg>
+                  <span>Dark Mode</span>
+                </>
+              )}
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Dashboard Filter Bar */}
+        <div className="w-full max-w-4xl flex items-center justify-center mb-10">
+          <FilterType
+            key={filterResetKey}
+            types={types}
+            generations={generations}
+            regions={regions}
+            onSearchAndFilter={handleSearchAndFilter}
+            isLoading={isLoading}
+          />
         </div>
 
         {/* Scanner Component Modal */}
@@ -569,94 +791,151 @@ function App() {
 
         {/* Staggered result cards grid */}
         {filteredPokemon.length > 0 && !showScanner && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4 w-full max-w-screen-xl">
-            {filteredPokemon.map((pokemon, idx) => (
-              <motion.div
-                key={pokemon.id}
-                onClick={() => handleCardClick(pokemon)}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15,
-                  delay: Math.min(idx * 0.04, 0.5),
-                }}
-                className="cursor-pointer h-full"
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4 w-full max-w-screen-xl">
+              {paginatedPokemon.map((pokemon, idx) => (
+                <motion.div
+                  key={pokemon.id}
+                  onClick={() => handleCardClick(pokemon)}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 15,
+                    delay: Math.min((idx % ITEMS_PER_PAGE) * 0.03, 0.4),
+                  }}
+                  className="cursor-pointer h-full"
+                >
+                  <PokemonCard
+                    pokemon={pokemon}
+                    layout="vertical"
+                    pokemonToRegionMap={pokemonToRegionMapRef.current}
+                    onToggleCompare={handleToggleCompare}
+                    isCompared={comparedPokemon.some((p) => p.id === pokemon.id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Infinite Scroll Sentinel & Auto-Loader */}
+            {filteredPokemon.length > paginatedPokemon.length ? (
+              <div
+                ref={loadMoreRef}
+                className="flex flex-col items-center justify-center mt-10 mb-8 py-4 select-none"
               >
-                <PokemonCard
-                  pokemon={pokemon}
-                  layout="vertical"
-                  pokemonToRegionMap={pokemonToRegionMapRef.current}
-                  onToggleCompare={handleToggleCompare}
-                  isCompared={comparedPokemon.some((p) => p.id === pokemon.id)}
-                />
-              </motion.div>
-            ))}
-          </div>
+                <div className="flex items-center gap-3 text-xs font-display font-semibold text-theme-secondary bg-theme-surface border border-theme px-5 py-2.5 rounded-full shadow-md">
+                  <svg className="animate-spin h-4 w-4 text-theme-accent" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Showing <span className="font-extrabold text-theme-primary">{paginatedPokemon.length}</span> of <span className="font-extrabold text-theme-primary">{filteredPokemon.length}</span> Pokémon · Auto-loading...</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center mt-10 mb-8 select-none">
+                <span className="text-xs font-display text-theme-secondary bg-theme-surface border border-theme px-4 py-2 rounded-full">
+                  All <span className="font-extrabold text-theme-primary">{filteredPokemon.length}</span> Pokémon loaded
+                </span>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Landing Home screen greeting */}
+        {/* Landing Open Hero Canvas Screen */}
         {!isLoading &&
           !selectedPokemon &&
           filteredPokemon.length === 0 &&
           !isScanning &&
           !showScanner && (
             <motion.div
+              ref={heroRef}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 80, damping: 15 }}
-              className="flex flex-col lg:flex-row items-center justify-between w-full max-w-4xl gap-10 p-8 sm:p-10 bg-theme-surface border border-theme shadow-2xl rounded-3xl backdrop-blur-sm mt-8 relative overflow-hidden select-none"
+              className="flex flex-col items-center w-full max-w-5xl mt-4 select-none"
             >
-              {/* Subtle animated background element */}
-              <div className="absolute inset-0 -z-10 bg-gradient-to-tr from-theme-surface via-theme-surface to-theme-accent/5 opacity-40 pointer-events-none" />
-              {/* Faint rotating Poké Ball motif (motion-safe) */}
-              <div className="absolute -right-20 -bottom-20 w-80 h-80 text-theme-watermark pointer-events-none opacity-40 -z-10 select-none motion-safe:animate-[poke-ball-spin_60s_infinite_linear]">
-                <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="3" className="w-full h-full">
-                  <circle cx="50" cy="50" r="45" />
-                  <line x1="5" y1="50" x2="95" y2="50" />
-                  <circle cx="50" cy="50" r="15" fill="currentColor" className="opacity-15" />
-                  <circle cx="50" cy="50" r="7" fill="none" />
-                </svg>
-              </div>
+              {/* Hero Main Block (Open canvas layout - no enclosing card border) */}
+              <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-10 py-6 sm:py-10 relative">
+                <div className="flex-grow flex flex-col items-start text-left max-w-xl">
+                  {/* 12px Red/Gold Eyebrow Label */}
+                  <span className="text-[12px] font-display font-bold text-theme-gold bg-theme-gold-bg border border-theme-gold/40 rounded-full uppercase tracking-widest mb-3 px-3 py-1">
+                    OFFICIAL POKÉDEX ARCHIVE
+                  </span>
 
-              <div className="flex-grow flex flex-col items-start text-left max-w-xl">
-                <h2 className="text-4xl sm:text-5xl font-display font-extrabold text-theme-primary leading-tight tracking-[-0.02em] mb-4">
-                  Explore the <span className="text-theme-accent">Infinite Universe</span> of Pokémon
-                </h2>
-                <p className="text-base sm:text-lg font-display text-theme-secondary tracking-normal mb-8 leading-relaxed">
-                  Analyze battle statistics, map regional variants, and utilize the advanced Dex Scanner to catalog every species in real-time.
-                </p>
-                <div className="flex flex-wrap gap-4 w-full">
-                  <button
-                    onClick={focusSearchInput}
-                    className="flex-1 sm:flex-initial px-6 py-3.5 bg-theme-accent text-white font-display font-bold text-sm rounded-2xl shadow-lg hover:opacity-90 transition-transform active:scale-[0.97] focus:outline-none flex items-center justify-center gap-2 border border-theme-accent"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
-                    </svg>
-                    Search Database
-                  </button>
-                  <button
-                    onClick={() => setShowScanner(true)}
-                    className="flex-1 sm:flex-initial px-6 py-3.5 bg-theme-surface border border-theme text-theme-primary font-display font-bold text-sm rounded-2xl shadow-md hover:bg-theme-surface-hover transition-transform active:scale-[0.97] focus:outline-none flex items-center justify-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15.5a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.053 47.745 47.745 0 0 0-3.91-.228 2.192 2.192 0 0 0-1.736 1.053l-.822 1.316z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 13.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" />
-                    </svg>
-                    Launch Scanner
-                  </button>
+                  {/* Bold Headline */}
+                  <h2 className="text-3xl sm:text-5xl font-display font-extrabold text-theme-primary leading-tight tracking-[-0.02em] mb-4">
+                    Discover, Search & <span className="text-theme-accent">Analyze Pokémon</span>
+                  </h2>
+
+                  {/* Supporting text */}
+                  <p className="text-base sm:text-lg font-display text-theme-secondary tracking-normal mb-8 leading-relaxed">
+                    Explore comprehensive battle statistics, regional form origins, type matchups, and use the real-time AI Dex Lens to identify any species instantly.
+                  </p>
+
+                  {/* CTAs */}
+                  <div className="flex flex-wrap gap-4 w-full">
+                    <button
+                      onClick={() => setShowScanner(true)}
+                      className="flex-1 sm:flex-initial px-7 py-3.5 bg-theme-accent text-white font-display font-bold text-sm rounded-2xl shadow-[0_6px_20px_rgba(161,26,41,0.3)] hover:opacity-90 transition-transform active:scale-[0.97] focus:outline-none flex items-center justify-center gap-2 border border-theme-accent cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15.5a2.25 2.25 0 0 0 2.25-2.25V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.053 47.745 47.745 0 0 0-3.91-.228 2.192 2.192 0 0 0-1.736 1.053l-.822 1.316z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 13.5a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" />
+                      </svg>
+                      Launch Scanner
+                    </button>
+                    <button
+                      onClick={handleBrowseDex}
+                      className="flex-1 sm:flex-initial px-7 py-3.5 bg-theme-surface border-2 border-theme text-theme-primary font-display font-bold text-sm rounded-2xl shadow-md hover:bg-theme-surface-hover transition-transform active:scale-[0.97] focus:outline-none flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
+                      </svg>
+                      Browse Pokédex
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hero Sprite - Unboxed Bleeding Artwork with Warm Gold Drop Shadow Glow in Light Mode */}
+                <div className="relative flex items-center justify-center flex-shrink-0 motion-safe:animate-float my-4 lg:my-0">
+                  <img
+                    src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif"
+                    alt="Pikachu"
+                    className="w-52 h-52 sm:w-64 sm:h-64 object-contain filter drop-shadow-[0_20px_35px_rgba(212,163,58,0.45)] dark:drop-shadow-[0_20px_40px_rgba(248,113,113,0.4)]"
+                  />
                 </div>
               </div>
 
-              {/* Large Bobbing Pikachu graphic (respects reduced motion) */}
-              <div className="relative w-44 h-44 sm:w-52 sm:h-52 bg-theme-input rounded-3xl p-4 border border-theme flex items-center justify-center shadow-inner flex-shrink-0 motion-safe:animate-float">
-                <img
-                  src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif"
-                  alt="Pikachu"
-                  className="w-36 h-36 object-contain"
-                />
+              {/* 3-Column Stat Strip with 1px Dividers */}
+              <div className="w-full mt-8 pt-8 border-t border-theme">
+                <div className="grid grid-cols-3 divide-x divide-theme w-full text-center">
+                  <div className="flex flex-col items-center px-4">
+                    <span className="text-2xl sm:text-4xl font-display font-extrabold text-theme-primary tracking-tight">
+                      {pokemonList.length > 0 ? pokemonList.length.toLocaleString() : "1,000+"}
+                    </span>
+                    <span className="text-xs font-display text-theme-secondary uppercase tracking-wider mt-1">
+                      Species tracked
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center px-4">
+                    <span className="text-2xl sm:text-4xl font-display font-extrabold text-theme-primary tracking-tight">
+                      {regions.length > 0 ? regions.length : 10}
+                    </span>
+                    <span className="text-xs font-display text-theme-secondary uppercase tracking-wider mt-1">
+                      Regions covered
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center px-4">
+                    <span className="text-2xl sm:text-4xl font-display font-extrabold text-theme-gold tracking-tight flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Live
+                    </span>
+                    <span className="text-xs font-display text-theme-secondary uppercase tracking-wider mt-1">
+                      Dex scanner
+                    </span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

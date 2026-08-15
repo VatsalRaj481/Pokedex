@@ -392,7 +392,7 @@ function PokemonCard({
       )}
 
       {/* Pokedex number in the top right of the card in white */}
-      <div className="absolute top-6 right-6 sm:top-8 sm:right-8 text-2xl sm:text-3xl font-display font-extrabold text-white select-none opacity-90 tracking-tight z-10">
+      <div className="absolute top-6 right-6 sm:top-8 sm:right-8 text-2xl sm:text-3xl font-display font-extrabold text-theme-primary select-none opacity-90 tracking-tight z-10">
         #{String(pokemon.id).padStart(3, "0")}
       </div>
       

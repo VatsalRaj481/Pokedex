@@ -221,22 +221,19 @@ function PokemonScanner({
       initial={{ opacity: 0, scale: 0.95, y: 15 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 120, damping: 18 }}
-      className="w-full max-w-xl bg-theme-surface rounded-3xl border-2 border-theme shadow-xl p-6 mb-8 flex flex-col items-center relative overflow-hidden"
+      className="w-full max-w-md sm:max-w-lg bg-theme-surface rounded-3xl border-2 border-theme shadow-2xl p-6 sm:p-8 mb-8 flex flex-col items-center relative overflow-hidden select-none"
     >
       
-      <div className="w-full flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-display font-extrabold text-theme-primary flex items-center gap-2.5 tracking-[-0.015em]">
-          <span className="w-4 h-4 rounded-full bg-red-500 animate-pulse border border-white"></span>
+      <div className="w-full flex items-center mb-5">
+        <h2 className="text-xl sm:text-2xl font-display font-extrabold text-theme-primary flex items-center gap-2.5 tracking-[-0.015em]">
+          <span className="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse border border-white"></span>
           Dex Scanner
         </h2>
-        <div className="text-[10px] font-display font-semibold text-theme-secondary bg-theme-input px-2.5 py-1 rounded-lg">
-          SYS.BOOTED
-        </div>
       </div>
 
       <div className="flex flex-col items-center w-full">
         {/* Camera Feed Container */}
-        <div className="relative w-full max-w-sm aspect-video sm:aspect-square rounded-2xl overflow-hidden border-4 border-theme bg-black flex items-center justify-center">
+        <div className="relative w-full aspect-square sm:aspect-[4/3] max-h-[380px] rounded-2xl overflow-hidden border-4 border-theme bg-black flex items-center justify-center shadow-inner">
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
@@ -262,7 +259,7 @@ function PokemonScanner({
           )}
 
           {!isCameraActive && !isScanning && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-955/90 text-slate-400">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-955/90 text-theme-secondary">
               <svg className="animate-spin h-8 w-8 text-theme-accent mb-3" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -272,13 +269,13 @@ function PokemonScanner({
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mt-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full mt-6">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             onClick={captureAndScan}
-            className="flex-1 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none"
+            className="flex-1 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none cursor-pointer"
             disabled={
               isScanning || !isCameraActive || cooldownUntil > Date.now()
             }
@@ -291,7 +288,7 @@ function PokemonScanner({
             whileTap={{ scale: 0.97 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             onClick={onClose}
-            className="px-6 py-3.5 bg-theme-accent hover:opacity-90 text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none"
+            className="px-6 py-3.5 bg-theme-accent hover:opacity-90 text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none cursor-pointer"
             disabled={isScanning}
           >
             Close

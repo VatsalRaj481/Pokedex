@@ -27,6 +27,21 @@
   --color-watermark: rgba(30, 41, 59, 0.1);
 }
 
+[data-theme="light"] {
+  --color-background: #f7f1e6;       /* Warm off-white/cream */
+  --color-surface: #fffdf8;          /* Warm near-white surface */
+  --color-surface-hover: #faf5ea;    /* Warm hover surface */
+  --color-text-primary: #2a2118;     /* Warm near-black text */
+  --color-text-secondary: #6b5c47;   /* Warm brown-gray text */
+  --color-border: #e8dcc8;           /* Warm tan/beige border */
+  --color-border-hover: #d8c8af;     /* Warm tan hover border */
+  --color-accent-red: #a11a29;       /* Rich contrast brand red */
+  --color-accent-gold: #d4a33a;      /* Warm gold/amber accent */
+  --color-accent-gold-bg: rgba(212, 163, 58, 0.14); /* Soft gold fill */
+  --color-input-bg: #faf5ea;         /* Warm input field background */
+  --color-watermark: rgba(216, 196, 168, 0.35); /* Warm watermark stroke */
+}
+
 /* Theme Mapping Helper Classes */
 .bg-theme-bg {
   background-color: var(--color-background);
@@ -89,6 +104,8 @@
 .text-theme-watermark {
   color: var(--color-watermark);
 }
+
+.bg-theme-border { background-color: var(--color-border); }
 
 /* Global Transition system for smooth Theme Toggle */
 body, div, select, input, button, span, h1, h2, h3, p, a, svg, line, circle {

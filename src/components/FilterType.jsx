@@ -1,38 +1,127 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
+// Helper to map generation ID to region name for display
+const getGenerationRegionName = (genId) => {
+  switch (genId) {
+    case 1: return "Kanto";
+    case 2: return "Johto";
+    case 3: return "Hoenn";
+    case 4: return "Sinnoh";
+    case 5: return "Unova";
+    case 6: return "Kalos";
+    case 7: return "Alola";
+    case 8: return "Galar";
+    case 9: return "Paldea";
+    default: return "";
+  }
+};
+
+function FilterType({ types, generations, regions, onSearchAndFilter, isLoading }) {
   const [nameQuery, setNameQuery] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedGeneration, setSelectedGeneration] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  const popoverRef = useRef(null);
+  const filtersButtonRef = useRef(null);
+
+  const categoryOptions = [
+    { value: "", label: "All Form Tags" },
+    { value: "mega", label: "Mega Evolution" },
+    { value: "gmax", label: "Gigantamax" },
+    { value: "alola", label: "Alolan Form" },
+    { value: "galar", label: "Galarian Form" },
+    { value: "hisui", label: "Hisuian Form" },
+    { value: "paldea", label: "Paldean Form" },
+    { value: "special", label: "Special Form" },
+  ];
+
+  // Count of active filters for the badge
+  const activeFilterCount = [selectedType, selectedRegion, selectedGeneration, selectedCategory].filter(Boolean).length;
+
+  // Close popover on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isPopoverOpen) {
+        setIsPopoverOpen(false);
+        filtersButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isPopoverOpen]);
+
+  // Close popover on click outside
+  useEffect(() => {
+    const handleMouseDown = (e) => {
+      if (
+        isPopoverOpen &&
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target) &&
+        filtersButtonRef.current &&
+        !filtersButtonRef.current.contains(e.target)
+      ) {
+        setIsPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [isPopoverOpen]);
+
+  // Focus trap inside the popover
+  const handlePopoverKeyDown = (e) => {
+    if (e.key !== "Tab") return;
+
+    const focusableEls = popoverRef.current?.querySelectorAll(
+      'select, button, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusableEls || focusableEls.length === 0) return;
+
+    const firstEl = focusableEls[0];
+    const lastEl = focusableEls[focusableEls.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      }
+    } else {
+      if (document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    }
+  };
 
   // Handles form submission to trigger search/filter
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearchAndFilter(nameQuery, selectedType, selectedGeneration);
+    onSearchAndFilter(nameQuery, selectedType, selectedRegion, selectedGeneration, selectedCategory);
+    setIsPopoverOpen(false);
   };
 
-  // Helper to map generation ID to region name for display
-  const getGenerationRegionName = (genId) => {
-    switch (genId) {
-      case 1: return "Kanto";
-      case 2: return "Johto";
-      case 3: return "Hoenn";
-      case 4: return "Sinnoh";
-      case 5: return "Unova";
-      case 6: return "Kalos";
-      case 7: return "Alola";
-      case 8: return "Galar";
-      case 9: return "Paldea";
-      default: return "";
-    }
+  const handleClearAll = () => {
+    setSelectedType("");
+    setSelectedRegion("");
+    setSelectedGeneration("");
+    setSelectedCategory("");
   };
+
+  const selectClasses =
+    "w-full px-4 py-2.5 bg-theme-input border-2 border-theme hover:border-theme-accent rounded-xl text-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent font-display capitalize cursor-pointer transition-all duration-200";
+
+  const labelClasses =
+    "block text-xs font-display font-semibold text-theme-secondary uppercase tracking-wide mb-1.5";
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full bg-theme-surface border border-theme p-5 sm:p-6 rounded-3xl shadow-lg relative overflow-hidden"
+      className="flex flex-row items-center gap-3 w-full bg-theme-surface border border-theme p-5 sm:p-6 rounded-3xl shadow-lg relative overflow-visible"
     >
+      {/* Search Input */}
       <div className="flex-1 relative">
         <input
           type="text"
@@ -61,48 +150,194 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
         </div>
       </div>
 
-      <div className="flex-1 relative">
-        <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-          className="w-full px-4 py-3 bg-theme-input border-2 border-theme hover:border-theme-accent rounded-2xl text-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent font-display capitalize cursor-pointer transition-all duration-200"
-          aria-label="Filter by Pokémon type"
+      {/* Filters Button + Popover */}
+      <div className="relative flex-shrink-0">
+        <motion.button
+          ref={filtersButtonRef}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          type="button"
+          onClick={() => setIsPopoverOpen((prev) => !prev)}
+          className="flex items-center gap-2 px-4 py-3 bg-theme-surface-hover border border-theme text-theme-primary rounded-2xl font-display font-semibold cursor-pointer transition-all duration-200 hover:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent"
+          aria-label="Toggle filter options"
+          aria-expanded={isPopoverOpen}
+          aria-haspopup="dialog"
           disabled={isLoading}
         >
-          <option value="" className="bg-theme-input text-theme-secondary">All Types</option>
-          {Array.isArray(types) &&
-            types.map((t) => (
-              <option key={t.name} value={t.name} className="bg-theme-input text-theme-primary capitalize">
-                {t.name}
-              </option>
-            ))}
-        </select>
+          {/* Funnel icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="w-4.5 h-4.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
+            />
+          </svg>
+          <span className="font-display text-sm">Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-theme-accent rounded-full font-display leading-none ml-0.5">
+              {activeFilterCount}
+            </span>
+          )}
+        </motion.button>
+
+        {/* Popover Panel */}
+        <AnimatePresence>
+          {isPopoverOpen && (
+            <motion.div
+              ref={popoverRef}
+              role="dialog"
+              aria-label="Filter options"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              onKeyDown={handlePopoverKeyDown}
+              className="absolute right-0 top-full mt-2 w-72 bg-theme-surface border border-theme rounded-2xl shadow-xl p-4 z-50"
+            >
+              <div className="flex flex-col gap-4">
+                {/* Type Select */}
+                <div>
+                  <label htmlFor="filter-type" className={labelClasses}>
+                    Type
+                  </label>
+                  <select
+                    id="filter-type"
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className={selectClasses}
+                    aria-label="Filter by Pokémon type"
+                    disabled={isLoading}
+                  >
+                    <option value="" className="bg-theme-input text-theme-secondary">
+                      All Types
+                    </option>
+                    {Array.isArray(types) &&
+                      types.map((t) => (
+                        <option
+                          key={t.name}
+                          value={t.name}
+                          className="bg-theme-input text-theme-primary capitalize"
+                        >
+                          {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Form Tag / Special Category Select */}
+                <div>
+                  <label htmlFor="filter-category" className={labelClasses}>
+                    Form Tag / Category
+                  </label>
+                  <select
+                    id="filter-category"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className={selectClasses}
+                    aria-label="Filter by form tag or category"
+                    disabled={isLoading}
+                  >
+                    {categoryOptions.map((opt) => (
+                      <option
+                        key={opt.value}
+                        value={opt.value}
+                        className="bg-theme-input text-theme-primary"
+                      >
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Region Select */}
+                <div>
+                  <label htmlFor="filter-region" className={labelClasses}>
+                    Region
+                  </label>
+                  <select
+                    id="filter-region"
+                    value={selectedRegion}
+                    onChange={(e) => setSelectedRegion(e.target.value)}
+                    className={selectClasses}
+                    aria-label="Filter by native region"
+                    disabled={isLoading}
+                  >
+                    <option value="" className="bg-theme-input text-theme-secondary">
+                      All Regions
+                    </option>
+                    {Array.isArray(regions) &&
+                      regions.map((region) => (
+                        <option
+                          key={region}
+                          value={region.toLowerCase()}
+                          className="bg-theme-input text-theme-primary capitalize"
+                        >
+                          {region.charAt(0).toUpperCase() + region.slice(1)}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Generation Select */}
+                <div>
+                  <label htmlFor="filter-generation" className={labelClasses}>
+                    Generation
+                  </label>
+                  <select
+                    id="filter-generation"
+                    value={selectedGeneration}
+                    onChange={(e) => setSelectedGeneration(e.target.value)}
+                    className={selectClasses}
+                    aria-label="Filter by Pokémon generation"
+                    disabled={isLoading}
+                  >
+                    <option value="" className="bg-theme-input text-theme-secondary">
+                      All Generations
+                    </option>
+                    {Array.isArray(generations) &&
+                      generations.map((gen) => (
+                        <option
+                          key={gen.id}
+                          value={gen.id}
+                          className="bg-theme-input text-theme-primary capitalize"
+                        >
+                          {`Gen ${gen.name.split("-")[1].toUpperCase()} (${getGenerationRegionName(gen.id)})`}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Clear All Button */}
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  disabled={activeFilterCount === 0}
+                  className="w-full py-2 text-sm font-display font-semibold text-theme-accent hover:text-theme-primary bg-transparent border border-theme hover:border-theme-accent rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-theme-accent"
+                  aria-label="Clear all filters"
+                >
+                  Clear All
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="flex-1 relative">
-        <select
-          value={selectedGeneration}
-          onChange={(e) => setSelectedGeneration(e.target.value)}
-          className="w-full px-4 py-3 bg-theme-input border-2 border-theme hover:border-theme-accent rounded-2xl text-theme-primary focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent font-display capitalize cursor-pointer transition-all duration-200"
-          aria-label="Filter by Pokémon generation"
-          disabled={isLoading}
-        >
-          <option value="" className="bg-theme-input text-theme-secondary">All Generations</option>
-          {Array.isArray(generations) &&
-            generations.map((gen) => (
-              <option key={gen.id} value={gen.id} className="bg-theme-input text-theme-primary capitalize">
-                {`Gen ${gen.name.split("-")[1].toUpperCase()} (${getGenerationRegionName(gen.id)})`}
-              </option>
-            ))}
-        </select>
-      </div>
-
+      {/* Search Submit Button */}
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
         type="submit"
-        className="w-full md:w-44 py-3 bg-theme-accent hover:opacity-90 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-theme-accent flex items-center justify-center gap-2"
+        className="flex-shrink-0 w-auto md:w-36 py-3 px-5 bg-theme-accent hover:opacity-90 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-theme-accent flex items-center justify-center gap-2"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -111,7 +346,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            <span>Analyzing...</span>
+            <span className="font-display">Analyzing...</span>
           </>
         ) : (
           <>
@@ -125,7 +360,7 @@ function FilterType({ types, generations, onSearchAndFilter, isLoading }) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
             </svg>
-            <span>Search</span>
+            <span className="font-display">Search</span>
           </>
         )}
       </motion.button>

@@ -4,7 +4,7 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full bg-gray-800 text-white py-4 mt-16 sm:mt-24 text-center text-sm sm:text-base shadow-inner">
+    <footer className="w-full bg-theme-surface text-theme-primary border-t border-theme py-4 mt-16 sm:mt-24 text-center text-sm sm:text-base shadow-inner">
       <div className="container mx-auto px-4">
         {" "}
         {/* Container for horizontal padding on larger screens */}

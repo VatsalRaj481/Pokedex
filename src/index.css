@@ -1,3 +1,204 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fonts custom bindings */
+.font-display {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+}
+
+.font-retro {
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* Theme Color Variables definition */
+:root {
+  --color-background: #020617; /* Deep Navy/Black */
+  --color-surface: #0f172a; /* Slate 900 */
+  --color-surface-hover: #1e293b; /* Slate 800 */
+  --color-text-primary: #ffffff; /* White */
+  --color-text-secondary: #94a3b8; /* Slate 400 */
+  --color-border: #1e293b; /* Slate 800 */
+  --color-border-hover: #334155; /* Slate 700 */
+  --color-accent-red: #A01C2C; /* Rich Jewel Pokedex Red */
+  --color-accent-gold: #D4AF37; /* Gold Foil */
+  --color-accent-gold-bg: rgba(212, 175, 55, 0.15);
+  --color-input-bg: #020617; /* Input field black */
+  --color-watermark: rgba(30, 41, 59, 0.1);
+}
+
+/* Theme Mapping Helper Classes */
+.bg-theme-bg {
+  background-color: var(--color-background);
+}
+
+.bg-theme-surface {
+  background-color: var(--color-surface);
+}
+
+.bg-theme-surface-hover {
+  background-color: var(--color-surface-hover);
+}
+
+.text-theme-primary {
+  color: var(--color-text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--color-text-secondary);
+}
+
+.border-theme {
+  border-color: var(--color-border);
+}
+
+.border-theme-hover {
+  border-color: var(--color-border-hover);
+}
+
+.bg-theme-input {
+  background-color: var(--color-input-bg);
+}
+
+/* Accent Mapping Helpers */
+.text-theme-accent {
+  color: var(--color-accent-red);
+}
+
+.bg-theme-accent {
+  background-color: var(--color-accent-red);
+}
+
+.border-theme-accent {
+  border-color: var(--color-accent-red);
+}
+
+/* Gold/Foil Accents */
+.text-theme-gold {
+  color: var(--color-accent-gold);
+}
+
+.bg-theme-gold-bg {
+  background-color: var(--color-accent-gold-bg);
+}
+
+.border-theme-gold {
+  border-color: var(--color-accent-gold);
+}
+
+.text-theme-watermark {
+  color: var(--color-watermark);
+}
+
+/* Global Transition system for smooth Theme Toggle */
+body, div, select, input, button, span, h1, h2, h3, p, a, svg, line, circle {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Animations Keyframes */
+@keyframes poke-ball-spin {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes button-blink {
+  0%, 100% { background-color: #ef4444; box-shadow: 0 0 2px #ef4444; }
+  50% { background-color: #22c55e; box-shadow: 0 0 8px #22c55e; }
+}
+
+@keyframes laser-sweep {
+  0% { top: 0%; opacity: 0.3; }
+  50% { top: 100%; opacity: 1; }
+  100% { top: 0%; opacity: 0.3; }
+}
+
+@keyframes card-fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes stat-bar-grow {
+  from { width: 0%; }
+}
+
+@keyframes float-bob {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+/* Animation Classes */
+.animate-pokeball-spin {
+  animation: poke-ball-spin 1.5s infinite linear;
+}
+
+.animate-btn-blink {
+  animation: button-blink 1s infinite alternate;
+}
+
+.animate-laser {
+  animation: laser-sweep 2.5s infinite ease-in-out;
+}
+
+.animate-card-in {
+  animation: card-fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-stat-grow {
+  animation: stat-bar-grow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float-bob 3s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dc2626;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b91c1c;
+}
+
+/* Accessibility: respect user preferences for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  
+  .animate-stat-grow {
+    animation: none !important;
+  }
+  
+  .animate-pokeball-spin {
+    animation: none !important;
+  }
+  
+  .animate-laser {
+    animation: none !important;
+  }
+}

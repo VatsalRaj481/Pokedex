@@ -17,7 +17,7 @@ const getGenerationRegionName = (genId) => {
   }
 };
 
-function FilterType({ types, generations, regions, onSearchAndFilter, isLoading }) {
+function FilterType({ types, generations, regions, onSearchAndFilter, isLoading, compact = false }) {
   const [nameQuery, setNameQuery] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
@@ -119,27 +119,35 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-row items-center gap-3 w-full bg-theme-surface border border-theme p-5 sm:p-6 rounded-3xl shadow-lg relative overflow-visible"
+      className={
+        compact
+          ? "flex flex-row items-center gap-1.5 sm:gap-2 w-full relative overflow-visible"
+          : "flex flex-row items-center gap-2 sm:gap-3 w-full bg-theme-surface border border-theme p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-lg relative overflow-visible"
+      }
     >
       {/* Search Input */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-w-0">
         <input
           type="text"
           placeholder="Search by name or number..."
           value={nameQuery}
           onChange={(e) => setNameQuery(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-theme-input border-2 border-theme hover:border-theme-accent rounded-2xl focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent text-theme-primary placeholder-slate-500 font-display transition-all duration-200"
+          className={
+            compact
+              ? "w-full pl-8 sm:pl-9 pr-3 py-2 bg-theme-input border border-theme hover:border-theme-accent rounded-xl focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent text-theme-primary placeholder-slate-400 font-display text-xs sm:text-sm transition-all duration-200"
+              : "w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-theme-input border-2 border-theme hover:border-theme-accent rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-theme-accent focus:border-transparent text-theme-primary placeholder-slate-400 font-display text-sm sm:text-base transition-all duration-200"
+          }
           aria-label="Search or filter Pokémon by name or ID"
           disabled={isLoading}
         />
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-theme-secondary pointer-events-none">
+        <div className={`absolute top-1/2 -translate-y-1/2 text-theme-secondary pointer-events-none ${compact ? "left-2.5" : "left-3 sm:left-3.5"}`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
             stroke="currentColor"
-            className="w-5 h-5"
+            className={compact ? "w-4 h-4" : "w-4 h-4 sm:w-5 sm:h-5"}
           >
             <path
               strokeLinecap="round"
@@ -159,7 +167,11 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
           type="button"
           onClick={() => setIsPopoverOpen((prev) => !prev)}
-          className="flex items-center gap-2 px-4 py-3 bg-theme-surface-hover border border-theme text-theme-primary rounded-2xl font-display font-semibold cursor-pointer transition-all duration-200 hover:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent"
+          className={
+            compact
+              ? "flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-theme-surface-hover border border-theme text-theme-primary rounded-xl font-display font-semibold text-xs sm:text-sm cursor-pointer transition-all duration-200 hover:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent min-h-[36px]"
+              : "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-theme-surface-hover border border-theme text-theme-primary rounded-xl sm:rounded-2xl font-display font-semibold text-xs sm:text-sm cursor-pointer transition-all duration-200 hover:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent min-h-[42px]"
+          }
           aria-label="Toggle filter options"
           aria-expanded={isPopoverOpen}
           aria-haspopup="dialog"
@@ -172,7 +184,7 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
             viewBox="0 0 24 24"
             strokeWidth={2}
             stroke="currentColor"
-            className="w-4.5 h-4.5"
+            className="w-4 h-4"
           >
             <path
               strokeLinecap="round"
@@ -180,9 +192,9 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
               d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
             />
           </svg>
-          <span className="font-display text-sm">Filters</span>
+          <span className="font-display hidden sm:inline">Filters</span>
           {activeFilterCount > 0 && (
-            <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[11px] font-bold text-white bg-theme-accent rounded-full font-display leading-none ml-0.5">
+            <span className="flex items-center justify-center min-w-[18px] h-4.5 px-1 text-[10px] sm:text-[11px] font-bold text-white bg-theme-accent rounded-full font-display leading-none">
               {activeFilterCount}
             </span>
           )}
@@ -200,9 +212,9 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
               onKeyDown={handlePopoverKeyDown}
-              className="absolute right-0 top-full mt-2 w-72 bg-theme-surface border border-theme rounded-2xl shadow-xl p-4 z-50"
+              className="absolute right-0 top-full mt-2 w-[calc(100vw-2.5rem)] sm:w-80 max-w-xs bg-theme-surface border border-theme rounded-2xl shadow-2xl p-4 z-50"
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 sm:gap-4">
                 {/* Type Select */}
                 <div>
                   <label htmlFor="filter-type" className={labelClasses}>
@@ -320,7 +332,7 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
                   type="button"
                   onClick={handleClearAll}
                   disabled={activeFilterCount === 0}
-                  className="w-full py-2 text-sm font-display font-semibold text-theme-accent hover:text-theme-primary bg-transparent border border-theme hover:border-theme-accent rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-theme-accent"
+                  className="w-full py-2 text-xs sm:text-sm font-display font-semibold text-theme-accent hover:text-theme-primary bg-transparent border border-theme hover:border-theme-accent rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-theme-accent"
                   aria-label="Clear all filters"
                 >
                   Clear All
@@ -337,16 +349,20 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
         type="submit"
-        className="flex-shrink-0 w-auto md:w-36 py-3 px-5 bg-theme-accent hover:opacity-90 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-2xl font-bold font-display shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-theme-accent flex items-center justify-center gap-2"
+        className={
+          compact
+            ? "flex-shrink-0 px-3 sm:px-4 py-2 bg-theme-accent hover:opacity-90 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-xl font-bold font-display text-xs sm:text-sm shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-theme-accent flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+            : "flex-shrink-0 px-3.5 sm:px-5 py-2.5 sm:py-3 w-auto md:w-36 bg-theme-accent hover:opacity-90 disabled:bg-theme-surface-hover disabled:text-theme-secondary text-white rounded-xl sm:rounded-2xl font-bold font-display text-xs sm:text-sm shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-theme-accent flex items-center justify-center gap-2 cursor-pointer min-h-[42px]"
+        }
         disabled={isLoading}
       >
         {isLoading ? (
           <>
-            <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            <span className="font-display">Analyzing...</span>
+            <span className="font-display hidden sm:inline">Analyzing...</span>
           </>
         ) : (
           <>
@@ -356,11 +372,11 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading 
               viewBox="0 0 24 24"
               strokeWidth={2.5}
               stroke="currentColor"
-              className="w-5 h-5"
+              className="w-4 h-4 sm:w-4.5 sm:h-4.5"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
             </svg>
-            <span className="font-display">Search</span>
+            <span className="font-display hidden sm:inline">Search</span>
           </>
         )}
       </motion.button>

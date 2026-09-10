@@ -224,16 +224,28 @@ function PokemonScanner({
       className="w-full max-w-md sm:max-w-lg bg-theme-surface rounded-3xl border-2 border-theme shadow-2xl p-6 sm:p-8 mb-8 flex flex-col items-center relative overflow-hidden select-none"
     >
       
-      <div className="w-full flex items-center mb-5">
+      <div className="w-full flex items-center justify-between mb-4 sm:mb-5">
         <h2 className="text-xl sm:text-2xl font-display font-extrabold text-theme-primary flex items-center gap-2.5 tracking-[-0.015em]">
           <span className="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse border border-white"></span>
           Dex Scanner
         </h2>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onClose}
+          className="p-2 rounded-full bg-theme-surface-hover text-theme-secondary hover:text-theme-primary border border-theme hover:border-theme-accent cursor-pointer flex items-center justify-center min-w-[36px] min-h-[36px]"
+          title="Close Scanner"
+          aria-label="Close Scanner"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </motion.button>
       </div>
 
       <div className="flex flex-col items-center w-full">
         {/* Camera Feed Container */}
-        <div className="relative w-full aspect-square sm:aspect-[4/3] max-h-[380px] rounded-2xl overflow-hidden border-4 border-theme bg-black flex items-center justify-center shadow-inner">
+        <div className="relative w-full aspect-square sm:aspect-[4/3] max-h-[50vh] sm:max-h-[380px] rounded-2xl overflow-hidden border-4 border-theme bg-black flex items-center justify-center shadow-inner">
           <video
             ref={videoRef}
             className="w-full h-full object-cover"

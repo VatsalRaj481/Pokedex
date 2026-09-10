@@ -280,7 +280,7 @@ function PokemonCard({
         whileHover={{ y: -6, scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className={`bg-theme-surface border rounded-3xl p-6 flex flex-col items-center relative group overflow-hidden shadow-md select-none cursor-pointer h-full`}
+        className="bg-theme-surface border rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 flex flex-col items-center relative group overflow-hidden shadow-md select-none cursor-pointer h-full"
         style={{
           borderColor: isCompared ? "var(--color-accent-red)" : "var(--color-border)",
           borderWidth: isCompared ? "3px" : "1px",
@@ -295,12 +295,13 @@ function PokemonCard({
               e.stopPropagation();
               onToggleCompare(pokemon);
             }}
-            className={`absolute top-4 right-4 z-10 p-2 rounded-full border border-theme flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2 sm:p-2.5 rounded-full border border-theme flex items-center justify-center transition-all duration-200 hover:scale-110 min-w-[36px] min-h-[36px] cursor-pointer ${
               isCompared
                 ? "bg-theme-accent text-white border-red-500 shadow-md"
                 : "bg-theme-surface-hover text-theme-secondary hover:text-theme-primary"
             }`}
             title="Toggle Comparison"
+            aria-label="Toggle Comparison"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -313,10 +314,8 @@ function PokemonCard({
           </motion.button>
         )}
 
-
-
         {/* Image Frame - p-2 padding and object-contain ensures the sprite renders in full without cropping */}
-        <div className="relative w-full aspect-square max-w-[12rem] flex items-center justify-center bg-theme-input/40 rounded-2xl p-2 mb-4 transition-all duration-200">
+        <div className="relative w-full aspect-square max-w-[10rem] sm:max-w-[12rem] flex items-center justify-center bg-theme-input/40 rounded-xl sm:rounded-2xl p-2 mb-3 sm:mb-4 transition-all duration-200">
           <img
             src={mainImageSrc}
             alt={pokemon.name}
@@ -328,25 +327,27 @@ function PokemonCard({
           />
         </div>
 
-        {/* Name and ID */}
-        <h2 className="text-xl font-display font-extrabold text-theme-primary text-center mb-1 tracking-tight flex items-center gap-1.5 justify-center flex-wrap">
-          {formatPokemonName(pokemon.name)}
-          <span className="text-sm font-display text-theme-accent font-bold">
-            #{String(pokemon.id).padStart(3, "0")}
-          </span>
-          {formBadge && (
-            <span className="px-1.5 py-0.5 rounded-md bg-theme-gold-bg text-theme-gold border border-theme-gold text-[8px] font-display font-bold shadow-sm uppercase">
-              {formBadge}
+        {/* Name and ID container with consistent height baseline */}
+        <div className="min-h-[3.25rem] sm:min-h-[3.5rem] flex flex-col items-center justify-center mb-1 w-full px-1">
+          <h2 className="text-base sm:text-lg md:text-xl font-display font-extrabold text-theme-primary text-center tracking-tight flex items-center gap-1.5 justify-center flex-wrap leading-tight">
+            <span>{formatPokemonName(pokemon.name)}</span>
+            <span className="text-xs sm:text-sm font-display text-theme-accent font-bold">
+              #{String(pokemon.id).padStart(3, "0")}
             </span>
-          )}
-        </h2>
+            {formBadge && (
+              <span className="px-1.5 py-0.5 rounded-md bg-theme-gold-bg text-theme-gold border border-theme-gold text-[8px] font-display font-bold shadow-sm uppercase">
+                {formBadge}
+              </span>
+            )}
+          </h2>
+        </div>
 
         {/* Brand Accurate Flat Types */}
-        <div className="flex gap-2 mb-4 justify-center">
+        <div className="flex gap-1.5 sm:gap-2 mb-3 sm:mb-4 justify-center flex-wrap">
           {pokemon.types.map((t) => (
             <span
               key={t.type.name}
-              className={`px-3 py-0.5 rounded-full text-[10px] font-display font-semibold tracking-wide border capitalize ${
+              className={`px-2.5 sm:px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-display font-semibold tracking-wide border capitalize ${
                 typeColors[t.type.name]
               }`}
             >
@@ -362,7 +363,7 @@ function PokemonCard({
             if (!meta) return null;
             const pct = Math.min((s.base_stat / meta.max) * 100, 100);
             return (
-              <div key={s.stat.name} className="flex items-center text-[10px] font-display">
+              <div key={s.stat.name} className="flex items-center text-[10px] sm:text-[11px] font-display">
                 <span className="w-8 text-theme-secondary font-medium capitalize">{meta.label}</span>
                 <span className="w-7 text-right pr-2 text-theme-primary font-bold">{s.base_stat}</span>
                 <div className="flex-1 h-1.5 bg-theme-input rounded-full overflow-hidden">
@@ -383,17 +384,19 @@ function PokemonCard({
   const dexDescription = description || "No Pokédex entry recorded for this form.";
 
   return (
-    <div className="bg-theme-surface border-4 border-theme-accent rounded-3xl p-6 sm:p-8 pt-16 sm:pt-20 flex flex-col lg:flex-row gap-8 shadow-xl relative animate-card-in overflow-hidden">
-      {/* Gold Alternate Form Tag absolute-positioned on the top-left of the entire card */}
-      {formBadge && (
-        <span className="absolute top-6 left-6 sm:top-8 sm:left-8 z-10 px-2.5 py-1 rounded-lg bg-theme-gold-bg text-theme-gold border border-theme-gold text-[10px] font-display font-bold shadow-sm uppercase">
-          {formBadge}
-        </span>
-      )}
-
-      {/* Pokedex number in the top right of the card in white */}
-      <div className="absolute top-6 right-6 sm:top-8 sm:right-8 text-2xl sm:text-3xl font-display font-extrabold text-theme-primary select-none opacity-90 tracking-tight z-10">
-        #{String(pokemon.id).padStart(3, "0")}
+    <div className="bg-theme-surface border-2 sm:border-4 border-theme-accent rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 pt-14 sm:pt-18 flex flex-col lg:flex-row gap-6 sm:gap-8 shadow-xl relative animate-card-in overflow-hidden w-full">
+      {/* Top Bar: Gold Alternate Form Tag on left, ID on right - flex aligned so they never collide */}
+      <div className="absolute top-4 sm:top-6 inset-x-4 sm:inset-x-8 flex items-center justify-between pointer-events-none z-10">
+        {formBadge ? (
+          <span className="px-2.5 py-1 rounded-lg bg-theme-gold-bg text-theme-gold border border-theme-gold text-[9px] sm:text-[10px] font-display font-bold shadow-sm uppercase pointer-events-auto">
+            {formBadge}
+          </span>
+        ) : (
+          <div />
+        )}
+        <div className="text-xl sm:text-2xl md:text-3xl font-display font-extrabold text-theme-primary opacity-90 tracking-tight">
+          #{String(pokemon.id).padStart(3, "0")}
+        </div>
       </div>
       
       {/* Subtle type indicator color wash */}
@@ -414,30 +417,43 @@ function PokemonCard({
               : "100, 116, 139",
         }}
       />
-      <div className="flex flex-col gap-8 lg:w-[40%] flex-shrink-0 self-stretch justify-between">
-        <div className="flex-1 w-full bg-theme-input/20 rounded-2xl p-2 flex items-center justify-center min-h-[220px]">
-          <img
-            src={mainImageSrc}
-            alt={pokemon.name}
-            className="w-full h-full object-contain drop-shadow-md transform hover:scale-110 transition-transform duration-200"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://placehold.co/512x512/1e293b/ffffff?text=No+Image`;
-            }}
-          />
-        </div>
 
-        {homeShinyImageSrc && (
-          <div className="flex-1 w-full bg-theme-input/20 rounded-2xl p-2 flex items-center justify-center min-h-[220px] relative">
-            {/* Absolute positioning for ✨ top-right, out of the way of the sprite */}
-            <span className="absolute top-4 right-4 text-xl select-none" title="Shiny Form">
-              ✨
-            </span>
-
+      {/* Sprites column / row */}
+      <div className="flex flex-col lg:w-[38%] flex-shrink-0 gap-4 sm:gap-6">
+        {homeShinyImageSrc ? (
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 flex-1">
+            <div className="bg-theme-input/20 rounded-2xl p-2 sm:p-3 flex items-center justify-center min-h-[160px] sm:min-h-[190px] lg:min-h-[220px]">
+              <img
+                src={mainImageSrc}
+                alt={pokemon.name}
+                className="w-full h-full max-h-[180px] lg:max-h-[220px] object-contain drop-shadow-md transform hover:scale-105 transition-transform duration-200"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://placehold.co/512x512/1e293b/ffffff?text=No+Image`;
+                }}
+              />
+            </div>
+            <div className="bg-theme-input/20 rounded-2xl p-2 sm:p-3 flex items-center justify-center min-h-[160px] sm:min-h-[190px] lg:min-h-[220px] relative">
+              <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-base sm:text-lg select-none" title="Shiny Form">
+                ✨
+              </span>
+              <img
+                src={homeShinyImageSrc}
+                alt={`${pokemon.name} home shiny`}
+                className="w-full h-full max-h-[180px] lg:max-h-[220px] object-contain drop-shadow-md transform hover:scale-105 transition-transform duration-200"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://placehold.co/512x512/1e293b/ffffff?text=No+Image`;
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="w-full bg-theme-input/20 rounded-2xl p-3 flex items-center justify-center min-h-[200px] sm:min-h-[240px] lg:min-h-[300px]">
             <img
-              src={homeShinyImageSrc}
-              alt={`${pokemon.name} home shiny`}
-              className="w-full h-full object-contain drop-shadow-md transform hover:scale-110 transition-transform duration-200"
+              src={mainImageSrc}
+              alt={pokemon.name}
+              className="w-full h-full max-h-[240px] lg:max-h-[300px] object-contain drop-shadow-md transform hover:scale-105 transition-transform duration-200"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = `https://placehold.co/512x512/1e293b/ffffff?text=No+Image`;
@@ -448,9 +464,9 @@ function PokemonCard({
       </div>
 
       {/* Info Deck */}
-      <div className="flex-grow flex flex-col gap-6">
+      <div className="flex-grow flex flex-col gap-4 sm:gap-6 min-w-0">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-theme-primary tracking-[-0.02em] flex items-center gap-2.5 flex-wrap">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-theme-primary tracking-[-0.02em] flex items-center gap-2.5 flex-wrap">
             {formatPokemonName(pokemon.name)}
           </h2>
 

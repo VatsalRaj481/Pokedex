@@ -111,11 +111,54 @@ function PokeBallLoader({ message }) {
   );
 }
 
+const CANONICAL_REGIONS = [
+  "kanto",
+  "johto",
+  "hoenn",
+  "sinnoh",
+  "unova",
+  "kalos",
+  "alola",
+  "galar",
+  "hisui",
+  "paldea",
+];
+
+const getDebutRegion = (pokemon) => {
+  if (!pokemon) return null;
+  let id = pokemon.id;
+  if (pokemon.species?.url) {
+    const match = pokemon.species.url.match(/\/pokemon-species\/(\d+)\//);
+    if (match) id = parseInt(match[1], 10);
+  }
+  if (!id || id > 1025) return null;
+  if (id >= 1 && id <= 151) return "kanto";
+  if (id >= 152 && id <= 251) return "johto";
+  if (id >= 252 && id <= 386) return "hoenn";
+  if (id >= 387 && id <= 493) return "sinnoh";
+  if (id >= 494 && id <= 649) return "unova";
+  if (id >= 650 && id <= 721) return "kalos";
+  if (id >= 722 && id <= 809) return "alola";
+  if (id >= 810 && id <= 898) return "galar";
+  if (id >= 899 && id <= 905) return "hisui";
+  if (id >= 906 && id <= 1025) return "paldea";
+  return null;
+};
+
 function App() {
   const [pokemonList, setPokemonList] = useState([]);
   const [types, setTypes] = useState([]);
   const [generations, setGenerations] = useState([]);
-  const [regions, setRegions] = useState([]);
+  const [regions, setRegions] = useState(() => {
+    try {
+      const cached = localStorage.getItem("pokedex_regions_v2");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length >= 9) return parsed;
+      }
+    } catch (e) {}
+    return CANONICAL_REGIONS;
+  });
   const [filteredPokemon, setFilteredPokemon] = useState([]);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
   const [selectedPokemonDescription, setSelectedPokemonDescription] =
@@ -140,7 +183,18 @@ function App() {
   // Sticky header state
   const [showStickyHeader, setShowStickyHeader] = useState(false);
 
-  const pokemonToRegionMapRef = useRef({});
+  const pokemonToRegionMapRef = useRef(
+    (() => {
+      try {
+        const cached = localStorage.getItem("pokedex_pokemon_to_region_v2");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object") return parsed;
+        }
+      } catch (e) {}
+      return {};
+    })()
+  );
   const generationSpeciesCache = useRef({});
   const heroRef = useRef(null);
   const loadMoreRef = useRef(null);
@@ -253,22 +307,28 @@ function App() {
         }));
         setGenerations(formattedGenerations);
 
+        const CACHE_KEY_MAP = "pokedex_pokemon_to_region_v2";
+        const CACHE_KEY_REGIONS = "pokedex_regions_v2";
+
         const pokedexListRes = await axios.get(
-          "https://pokeapi.co/api/v2/pokedex"
+          "https://pokeapi.co/api/v2/pokedex?limit=100"
         );
         const tempPokemonToRegionMap = {};
 
         const pokedexDetailsPromises = pokedexListRes.data.results.map((pdx) =>
-          axios.get(pdx.url)
+          axios.get(pdx.url).catch(() => null)
         );
         const pokedexDetails = await Promise.all(pokedexDetailsPromises);
 
+        const foundRegions = new Set();
         pokedexDetails.forEach((pdxDetail) => {
+          if (!pdxDetail?.data) return;
           const regionName = pdxDetail.data.region
             ? pdxDetail.data.region.name
             : null;
 
           if (regionName) {
+            foundRegions.add(regionName);
             pdxDetail.data.pokemon_entries.forEach((entry) => {
               const pokemonName = entry.pokemon_species.name;
               if (!tempPokemonToRegionMap[pokemonName]) {
@@ -289,14 +349,16 @@ function App() {
         pokemonToRegionMapRef.current = finalPokemonToRegionMap;
 
         // Extract unique regions in canonical order
-        const regionOrder = ["kanto", "johto", "hoenn", "sinnoh", "unova", "kalos", "alola", "galar", "hisui", "paldea"];
-        const foundRegions = new Set();
-        pokedexDetails.forEach((pdxDetail) => {
-          if (pdxDetail.data.region) {
-            foundRegions.add(pdxDetail.data.region.name);
-          }
-        });
-        setRegions(regionOrder.filter((r) => foundRegions.has(r)));
+        const activeRegions = CANONICAL_REGIONS.filter((r) => foundRegions.has(r));
+        const resolvedRegions = activeRegions.length >= 9 ? activeRegions : CANONICAL_REGIONS;
+        setRegions(resolvedRegions);
+
+        try {
+          localStorage.setItem(CACHE_KEY_MAP, JSON.stringify(finalPokemonToRegionMap));
+          localStorage.setItem(CACHE_KEY_REGIONS, JSON.stringify(resolvedRegions));
+        } catch (cacheErr) {
+          console.error("Cache write error:", cacheErr);
+        }
       } catch (error) {
         console.error("Error fetching initial data:", error);
         toast.error("Failed to load initial PokeAPI mappings.");
@@ -481,23 +543,76 @@ function App() {
           const reg = selectedRegion.toLowerCase();
           const pName = pokemon.name.toLowerCase();
 
-          if (reg === "hisui") {
-            if (pName.includes("-hisui") || pName === "basculegion" || pName === "sneasler" || pName === "overqwil" || pName === "enamorus" || pName === "dialga-origin" || pName === "palkia-origin") {
+          // Check if this Pokemon is an explicit regional variant of a specific region
+          const isGalarForm = pName.includes("-galar");
+          const isPaldeaForm = pName.includes("-paldea");
+          const isAlolaForm = pName.includes("-alola");
+          const isHisuiForm =
+            pName.includes("-hisui") ||
+            pName === "basculegion" ||
+            pName === "sneasler" ||
+            pName === "overqwil" ||
+            pName === "enamorus" ||
+            pName === "dialga-origin" ||
+            pName === "palkia-origin";
+
+          if (isGalarForm && reg !== "galar") {
+            matchesRegion = false;
+          } else if (isPaldeaForm && reg !== "paldea") {
+            matchesRegion = false;
+          } else if (isAlolaForm && reg !== "alola") {
+            matchesRegion = false;
+          } else if (isHisuiForm && reg !== "hisui") {
+            matchesRegion = false;
+          } else if (reg === "hisui") {
+            if (isHisuiForm) {
               matchesRegion = true;
             } else {
-              const mappedRegions = pokemonToRegionMapRef.current[pokemon.name] || [];
+              const speciesName = pokemon.species?.name || pokemon.name.split("-")[0];
+              const mappedRegions =
+                pokemonToRegionMapRef.current[pokemon.name] ||
+                pokemonToRegionMapRef.current[speciesName] ||
+                [];
               matchesRegion = mappedRegions.some((r) => r.toLowerCase() === "hisui");
+            }
+          } else if (reg === "galar") {
+            if (isGalarForm || pName.includes("-gmax")) {
+              matchesRegion = true;
+            } else {
+              const speciesName = pokemon.species?.name || pokemon.name.split("-")[0];
+              const mappedRegions =
+                pokemonToRegionMapRef.current[pokemon.name] ||
+                pokemonToRegionMapRef.current[speciesName] ||
+                [];
+              const debut = getDebutRegion(pokemon);
+              matchesRegion =
+                mappedRegions.some((r) => r.toLowerCase() === "galar") || debut === "galar";
+            }
+          } else if (reg === "paldea") {
+            if (isPaldeaForm) {
+              matchesRegion = true;
+            } else {
+              const speciesName = pokemon.species?.name || pokemon.name.split("-")[0];
+              const mappedRegions =
+                pokemonToRegionMapRef.current[pokemon.name] ||
+                pokemonToRegionMapRef.current[speciesName] ||
+                [];
+              const debut = getDebutRegion(pokemon);
+              matchesRegion =
+                mappedRegions.some((r) => r.toLowerCase() === "paldea") || debut === "paldea";
             }
           } else {
             if (pName.includes(`-${reg}`)) {
               matchesRegion = true;
             } else {
+              const speciesName = pokemon.species?.name || pokemon.name.split("-")[0];
               const mappedRegions = pokemonToRegionMapRef.current[pokemon.name] || [];
-              const baseName = pokemon.name.split("-")[0];
-              const baseRegions = pokemonToRegionMapRef.current[baseName] || [];
+              const baseRegions = pokemonToRegionMapRef.current[speciesName] || [];
+              const debut = getDebutRegion(pokemon);
               matchesRegion =
                 mappedRegions.some((r) => r.toLowerCase() === reg) ||
-                baseRegions.some((r) => r.toLowerCase() === reg);
+                baseRegions.some((r) => r.toLowerCase() === reg) ||
+                debut === reg;
             }
           }
         }

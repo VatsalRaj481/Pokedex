@@ -200,6 +200,7 @@ function PokemonCard({
   const heightInMeters = (pokemon.height / 10).toFixed(1);
   const weightInKilograms = (pokemon.weight / 10).toFixed(1);
   const getBaseName = (name) => {
+    if (!name) return "";
     let lower = name.toLowerCase();
     lower = lower.replace("-mega-x", "");
     lower = lower.replace("-mega-y", "");
@@ -211,21 +212,70 @@ function PokemonCard({
     lower = lower.replace("-paldea", "");
     return lower;
   };
-  const baseName = getBaseName(pokemon.name);
-  let pokemonRegions = pokemonToRegionMap[pokemon.name] || pokemonToRegionMap[baseName] || [];
+
+  const getDebutRegion = (poke) => {
+    let id = poke?.id;
+    if (poke?.species?.url) {
+      const match = poke.species.url.match(/\/pokemon-species\/(\d+)\//);
+      if (match) id = parseInt(match[1], 10);
+    }
+    if (!id || id > 1025) return null;
+    if (id >= 1 && id <= 151) return "kanto";
+    if (id >= 152 && id <= 251) return "johto";
+    if (id >= 252 && id <= 386) return "hoenn";
+    if (id >= 387 && id <= 493) return "sinnoh";
+    if (id >= 494 && id <= 649) return "unova";
+    if (id >= 650 && id <= 721) return "kalos";
+    if (id >= 722 && id <= 809) return "alola";
+    if (id >= 810 && id <= 898) return "galar";
+    if (id >= 899 && id <= 905) return "hisui";
+    if (id >= 906 && id <= 1025) return "paldea";
+    return null;
+  };
+
   const nameLower = pokemon.name.toLowerCase();
-  if (
+  const baseName = pokemon.species?.name || getBaseName(pokemon.name);
+  const regionOrder = ["kanto", "johto", "hoenn", "sinnoh", "unova", "kalos", "alola", "galar", "hisui", "paldea"];
+
+  let pokemonRegions = [];
+
+  // Regional forms are strictly specific to their respective regions
+  if (nameLower.includes("-galar")) {
+    pokemonRegions = ["galar"];
+  } else if (nameLower.includes("-paldea")) {
+    pokemonRegions = ["paldea"];
+  } else if (nameLower.includes("-alola")) {
+    pokemonRegions = ["alola"];
+  } else if (
     nameLower.includes("-hisui") ||
     nameLower.includes("basculegion") ||
     nameLower.includes("sneasler") ||
+    nameLower.includes("overqwil") ||
+    nameLower.includes("enamorus") ||
     nameLower.includes("dialga-origin") ||
     nameLower.includes("palkia-origin")
   ) {
     pokemonRegions = ["hisui"];
-  } else if (nameLower.includes("-gmax")) {
-    if (!pokemonRegions.includes("galar")) {
-      pokemonRegions = [...pokemonRegions, "galar"];
+  } else {
+    const fromMap =
+      pokemonToRegionMap[pokemon.name] ||
+      pokemonToRegionMap[pokemon.species?.name] ||
+      pokemonToRegionMap[baseName] ||
+      pokemonToRegionMap[pokemon.name.split("-")[0]] ||
+      [];
+
+    const regionSet = new Set(fromMap.map((r) => r.toLowerCase()));
+
+    const debut = getDebutRegion(pokemon);
+    if (debut) {
+      regionSet.add(debut);
     }
+
+    if (nameLower.includes("-gmax")) {
+      regionSet.add("galar");
+    }
+
+    pokemonRegions = regionOrder.filter((r) => regionSet.has(r));
   }
 
   const formatPokemonName = (rawName) => {

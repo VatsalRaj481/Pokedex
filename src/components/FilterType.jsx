@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Helper to map generation ID to region name for display
@@ -24,9 +25,38 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
   const [selectedGeneration, setSelectedGeneration] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [popoverCoords, setPopoverCoords] = useState(null);
 
   const popoverRef = useRef(null);
   const filtersButtonRef = useRef(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!filtersButtonRef.current) return;
+    const rect = filtersButtonRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const isMobile = vw < 640;
+
+    if (isMobile) {
+      setPopoverCoords({
+        top: `${rect.bottom + 8}px`,
+        left: "12px",
+        right: "12px",
+        width: "auto",
+        maxWidth: "calc(100vw - 24px)",
+      });
+    } else {
+      const popoverWidth = 320;
+      const rightAlignedLeft = rect.right - popoverWidth;
+      const clampedLeft = Math.max(16, Math.min(rightAlignedLeft, vw - popoverWidth - 16));
+      setPopoverCoords({
+        top: `${rect.bottom + 8}px`,
+        left: `${clampedLeft}px`,
+        right: "auto",
+        width: `${popoverWidth}px`,
+        maxWidth: `${popoverWidth}px`,
+      });
+    }
+  }, []);
 
   const categoryOptions = [
     { value: "", label: "All Form Tags" },
@@ -42,6 +72,19 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
   // Count of active filters for the badge
   const activeFilterCount = [selectedType, selectedRegion, selectedGeneration, selectedCategory].filter(Boolean).length;
 
+  // Recalculate position on resize or scroll when open
+  useEffect(() => {
+    if (!isPopoverOpen) return;
+    updatePopoverPosition();
+    const handleScrollOrResize = () => updatePopoverPosition();
+    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    return () => {
+      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+    };
+  }, [isPopoverOpen, updatePopoverPosition]);
+
   // Close popover on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -54,9 +97,9 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isPopoverOpen]);
 
-  // Close popover on click outside
+  // Close popover on click/tap outside
   useEffect(() => {
-    const handleMouseDown = (e) => {
+    const handlePointerDown = (e) => {
       if (
         isPopoverOpen &&
         popoverRef.current &&
@@ -67,8 +110,12 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
         setIsPopoverOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
   }, [isPopoverOpen]);
 
   // Focus trap inside the popover
@@ -166,7 +213,12 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
           type="button"
-          onClick={() => setIsPopoverOpen((prev) => !prev)}
+          onClick={() => {
+            if (!isPopoverOpen) {
+              updatePopoverPosition();
+            }
+            setIsPopoverOpen((prev) => !prev);
+          }}
           className={
             compact
               ? "flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-theme-surface-hover border border-theme text-theme-primary rounded-xl font-display font-semibold text-xs sm:text-sm cursor-pointer transition-all duration-200 hover:border-theme-accent focus:outline-none focus:ring-2 focus:ring-theme-accent min-h-[36px]"
@@ -200,147 +252,162 @@ function FilterType({ types, generations, regions, onSearchAndFilter, isLoading,
           )}
         </motion.button>
 
-        {/* Popover Panel */}
-        <AnimatePresence>
-          {isPopoverOpen && (
-            <motion.div
-              ref={popoverRef}
-              role="dialog"
-              aria-label="Filter options"
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              onKeyDown={handlePopoverKeyDown}
-              className="absolute right-0 top-full mt-2 w-[calc(100vw-2.5rem)] sm:w-80 max-w-xs bg-theme-surface border border-theme rounded-2xl shadow-2xl p-4 z-50"
-            >
-              <div className="flex flex-col gap-3 sm:gap-4">
-                {/* Type Select */}
-                <div>
-                  <label htmlFor="filter-type" className={labelClasses}>
-                    Type
-                  </label>
-                  <select
-                    id="filter-type"
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className={selectClasses}
-                    aria-label="Filter by Pokémon type"
-                    disabled={isLoading}
-                  >
-                    <option value="" className="bg-theme-input text-theme-secondary">
-                      All Types
-                    </option>
-                    {Array.isArray(types) &&
-                      types.map((t) => (
-                        <option
-                          key={t.name}
-                          value={t.name}
-                          className="bg-theme-input text-theme-primary capitalize"
-                        >
-                          {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Form Tag / Special Category Select */}
-                <div>
-                  <label htmlFor="filter-category" className={labelClasses}>
-                    Form Tag / Category
-                  </label>
-                  <select
-                    id="filter-category"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className={selectClasses}
-                    aria-label="Filter by form tag or category"
-                    disabled={isLoading}
-                  >
-                    {categoryOptions.map((opt) => (
-                      <option
-                        key={opt.value}
-                        value={opt.value}
-                        className="bg-theme-input text-theme-primary"
-                      >
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Region Select */}
-                <div>
-                  <label htmlFor="filter-region" className={labelClasses}>
-                    Region
-                  </label>
-                  <select
-                    id="filter-region"
-                    value={selectedRegion}
-                    onChange={(e) => setSelectedRegion(e.target.value)}
-                    className={selectClasses}
-                    aria-label="Filter by native region"
-                    disabled={isLoading}
-                  >
-                    <option value="" className="bg-theme-input text-theme-secondary">
-                      All Regions
-                    </option>
-                    {Array.isArray(regions) &&
-                      regions.map((region) => (
-                        <option
-                          key={region}
-                          value={region.toLowerCase()}
-                          className="bg-theme-input text-theme-primary capitalize"
-                        >
-                          {region.charAt(0).toUpperCase() + region.slice(1)}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Generation Select */}
-                <div>
-                  <label htmlFor="filter-generation" className={labelClasses}>
-                    Generation
-                  </label>
-                  <select
-                    id="filter-generation"
-                    value={selectedGeneration}
-                    onChange={(e) => setSelectedGeneration(e.target.value)}
-                    className={selectClasses}
-                    aria-label="Filter by Pokémon generation"
-                    disabled={isLoading}
-                  >
-                    <option value="" className="bg-theme-input text-theme-secondary">
-                      All Generations
-                    </option>
-                    {Array.isArray(generations) &&
-                      generations.map((gen) => (
-                        <option
-                          key={gen.id}
-                          value={gen.id}
-                          className="bg-theme-input text-theme-primary capitalize"
-                        >
-                          {`Gen ${gen.name.split("-")[1].toUpperCase()} (${getGenerationRegionName(gen.id)})`}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {/* Clear All Button */}
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  disabled={activeFilterCount === 0}
-                  className="w-full py-2 text-xs sm:text-sm font-display font-semibold text-theme-accent hover:text-theme-primary bg-transparent border border-theme hover:border-theme-accent rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-theme-accent"
-                  aria-label="Clear all filters"
+        {/* Popover Panel (Portaled to body to guarantee perfect viewport-aligned positioning) */}
+        {typeof document !== "undefined" &&
+          createPortal(
+            <AnimatePresence>
+              {isPopoverOpen && (
+                <motion.div
+                  ref={popoverRef}
+                  role="dialog"
+                  aria-label="Filter options"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  onKeyDown={handlePopoverKeyDown}
+                  style={popoverCoords || {}}
+                  className="fixed bg-theme-surface border border-theme rounded-2xl shadow-2xl p-4 z-[9999] max-h-[calc(100vh-5rem)] overflow-y-auto"
                 >
-                  Clear All
-                </button>
-              </div>
-            </motion.div>
+                  <div className="flex flex-col gap-3 sm:gap-4">
+                    {/* Type Select */}
+                    <div>
+                      <label htmlFor="filter-type" className={labelClasses}>
+                        Type
+                      </label>
+                      <select
+                        id="filter-type"
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className={selectClasses}
+                        aria-label="Filter by Pokémon type"
+                        disabled={isLoading}
+                      >
+                        <option value="" className="bg-theme-input text-theme-secondary">
+                          All Types
+                        </option>
+                        {Array.isArray(types) &&
+                          types.map((t) => (
+                            <option
+                              key={t.name}
+                              value={t.name}
+                              className="bg-theme-input text-theme-primary capitalize"
+                            >
+                              {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* Form Tag / Special Category Select */}
+                    <div>
+                      <label htmlFor="filter-category" className={labelClasses}>
+                        Form Tag / Category
+                      </label>
+                      <select
+                        id="filter-category"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className={selectClasses}
+                        aria-label="Filter by form tag or category"
+                        disabled={isLoading}
+                      >
+                        {categoryOptions.map((opt) => (
+                          <option
+                            key={opt.value}
+                            value={opt.value}
+                            className="bg-theme-input text-theme-primary"
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Region Select */}
+                    <div>
+                      <label htmlFor="filter-region" className={labelClasses}>
+                        Region
+                      </label>
+                      <select
+                        id="filter-region"
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className={selectClasses}
+                        aria-label="Filter by native region"
+                        disabled={isLoading}
+                      >
+                        <option value="" className="bg-theme-input text-theme-secondary">
+                          All Regions
+                        </option>
+                        {Array.isArray(regions) &&
+                          regions.map((region) => (
+                            <option
+                              key={region}
+                              value={region.toLowerCase()}
+                              className="bg-theme-input text-theme-primary capitalize"
+                            >
+                              {region.charAt(0).toUpperCase() + region.slice(1)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* Generation Select */}
+                    <div>
+                      <label htmlFor="filter-generation" className={labelClasses}>
+                        Generation
+                      </label>
+                      <select
+                        id="filter-generation"
+                        value={selectedGeneration}
+                        onChange={(e) => setSelectedGeneration(e.target.value)}
+                        className={selectClasses}
+                        aria-label="Filter by Pokémon generation"
+                        disabled={isLoading}
+                      >
+                        <option value="" className="bg-theme-input text-theme-secondary">
+                          All Generations
+                        </option>
+                        {Array.isArray(generations) &&
+                          generations.map((gen) => (
+                            <option
+                              key={gen.id}
+                              value={gen.id}
+                              className="bg-theme-input text-theme-primary capitalize"
+                            >
+                              {`Gen ${gen.name.split("-")[1].toUpperCase()} (${getGenerationRegionName(gen.id)})`}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {/* Action Buttons: Clear All & Apply */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleClearAll}
+                        disabled={activeFilterCount === 0}
+                        className="flex-1 py-2 text-xs sm:text-sm font-display font-semibold text-theme-accent hover:text-theme-primary bg-transparent border border-theme hover:border-theme-accent rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-theme-accent"
+                        aria-label="Clear all filters"
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="flex-1 py-2 text-xs sm:text-sm font-display font-bold text-white bg-theme-accent hover:opacity-90 rounded-xl transition-all duration-200 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-theme-accent"
+                        aria-label="Apply filters"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>,
+            document.body
           )}
-        </AnimatePresence>
       </div>
 
       {/* Search Submit Button */}

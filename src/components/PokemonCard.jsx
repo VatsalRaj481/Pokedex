@@ -421,7 +421,7 @@ function PokemonCard({
       {/* Sprites column / row */}
       <div className="flex flex-col lg:w-[38%] flex-shrink-0 gap-4 sm:gap-6">
         {homeShinyImageSrc ? (
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 flex-1">
+          <div className="flex flex-col gap-4 sm:gap-5 flex-1">
             <div className="bg-theme-input/20 rounded-2xl p-2 sm:p-3 flex items-center justify-center min-h-[160px] sm:min-h-[190px] lg:min-h-[220px]">
               <img
                 src={mainImageSrc}
